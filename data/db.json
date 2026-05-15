@@ -1088,40 +1088,15 @@
   ],
   "reports": [
     {
-      "id": "report_1778851271934_8h0yqi",
-      "schoolId": "school_1775832205007_kojwzb",
-      "bookId": "book_1775832315313_j2mnc2",
-      "promoterId": "promoter_1775832343460_e5gr74",
-      "term": "2026年秋",
-      "note": "",
-      "createdAt": "2026-05-15T13:21:11.934Z"
-    },
-    {
-      "id": "report_1775890295774_sgbgdb",
-      "schoolId": "school_1775832205007_1nffjq",
-      "bookId": "book_1775832315313_xgyary",
-      "promoterId": "promoter_1775832343461_p8uz7u",
-      "note": "",
-      "createdAt": "2026-04-11T06:51:35.774Z",
-      "term": "2026年春"
-    },
-    {
-      "id": "report_1775890285359_67owz3",
-      "schoolId": "school_1775832205007_mxipzj",
-      "bookId": "book_1775832315313_vudkkc",
-      "promoterId": "promoter_1775832343461_p8uz7u",
-      "note": "",
-      "createdAt": "2026-04-11T06:51:25.359Z",
-      "term": "2026年春"
-    },
-    {
-      "id": "report_1775890275646_mhxi26",
+      "id": "report_1778853821424_d87661",
       "schoolId": "school_1775832205007_kq8vc5",
-      "bookId": "book_1775832315313_vudkkc",
+      "bookMode": "all",
+      "bookId": "",
+      "bookIds": [],
       "promoterId": "promoter_1775832343461_m7xc6o",
-      "note": "",
-      "createdAt": "2026-04-11T06:51:15.646Z",
-      "term": "2026年春"
+      "term": "2026年秋",
+      "note": "推广所有图书",
+      "createdAt": "2026-05-15T14:03:41.424Z"
     }
   ]
 }

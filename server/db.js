@@ -71,11 +71,20 @@ function normalizePromoter(promoter) {
 }
 
 function normalizeReport(report) {
+  const bookMode = ['single', 'all', 'exclude'].includes(report?.bookMode)
+    ? report.bookMode
+    : 'single'
+  const bookIds = Array.isArray(report?.bookIds)
+    ? report.bookIds.map(normalizeText).filter(Boolean)
+    : []
+
   return {
     ...report,
     id: report?.id || createId('report'),
     schoolId: normalizeText(report?.schoolId),
-    bookId: normalizeText(report?.bookId),
+    bookMode,
+    bookId: bookMode === 'single' ? normalizeText(report?.bookId) : '',
+    bookIds: bookMode === 'exclude' ? Array.from(new Set(bookIds)) : [],
     promoterId: normalizeText(report?.promoterId),
     note: normalizeText(report?.note),
     term: normalizeText(report?.term) || inferTerm(report?.createdAt),

@@ -36,7 +36,13 @@ function deleteByKind(db, kind, ids) {
 
   if (kind === 'books') {
     db.books = db.books.filter((item) => !idSet.has(item.id))
-    db.reports = db.reports.filter((item) => !idSet.has(item.bookId))
+    db.reports = db.reports
+      .filter((item) => item.bookMode !== 'single' || !idSet.has(item.bookId))
+      .map((item) =>
+        item.bookMode === 'exclude'
+          ? { ...item, bookIds: (item.bookIds || []).filter((bookId) => !idSet.has(bookId)) }
+          : item,
+      )
     return
   }
 
@@ -223,39 +229,92 @@ function updatePromoter(db, id, payload) {
   return db.promoters[index]
 }
 
-function ensureReportRefs(db, payload) {
-  const school = db.schools.find((item) => item.id === payload.schoolId)
-  const book = db.books.find((item) => item.id === payload.bookId)
-  const promoter = db.promoters.find((item) => item.id === payload.promoterId)
-
-  if (!school || !book || !promoter) {
-    throw new Error('报备对象不存在，请刷新后重试。')
-  }
-}
-
-function createReport(db, payload) {
+function normalizeReportPayload(payload) {
+  const bookMode = ['single', 'all', 'exclude'].includes(payload.bookMode)
+    ? payload.bookMode
+    : 'single'
   const normalized = {
     schoolId: normalizeText(payload.schoolId),
-    bookId: normalizeText(payload.bookId),
+    bookMode,
+    bookId: bookMode === 'single' ? normalizeText(payload.bookId) : '',
+    bookIds:
+      bookMode === 'exclude' && Array.isArray(payload.bookIds)
+        ? Array.from(new Set(payload.bookIds.map(normalizeText).filter(Boolean)))
+        : [],
     promoterId: normalizeText(payload.promoterId),
     term: normalizeText(payload.term),
     note: normalizeText(payload.note),
   }
 
-  if (!normalized.schoolId || !normalized.bookId || !normalized.promoterId || !normalized.term) {
-    throw new Error('学校、书目、推广商、报备学期均为必选项。')
+  if (normalized.bookMode === 'all' && !normalized.note) {
+    normalized.note = '推广所有图书'
   }
 
+  if (normalized.bookMode === 'exclude' && !normalized.note) {
+    normalized.note = '只有所选图书不推广'
+  }
+
+  return normalized
+}
+
+function ensureReportRefs(db, payload) {
+  const school = db.schools.find((item) => item.id === payload.schoolId)
+  const promoter = db.promoters.find((item) => item.id === payload.promoterId)
+
+  if (!school || !promoter) {
+    throw new Error('报备对象不存在，请刷新后重试。')
+  }
+
+  if (payload.bookMode === 'single') {
+    const book = db.books.find((item) => item.id === payload.bookId)
+    if (!book) {
+      throw new Error('报备对象不存在，请刷新后重试。')
+    }
+  }
+
+  if (payload.bookMode === 'exclude') {
+    const bookIdSet = new Set(db.books.map((item) => item.id))
+    const invalidBookIds = payload.bookIds.filter((bookId) => !bookIdSet.has(bookId))
+    if (invalidBookIds.length) {
+      throw new Error('报备对象不存在，请刷新后重试。')
+    }
+  }
+}
+
+function hasReportConflict(report, normalized, currentId = '') {
+  const reportBookMode = report.bookMode || 'single'
+  if (report.id === currentId) return false
+  if (report.schoolId !== normalized.schoolId || report.term !== normalized.term) return false
+
+  if (normalized.bookMode === 'single') {
+    return reportBookMode === 'single' && report.bookId === normalized.bookId
+  }
+
+  return reportBookMode === normalized.bookMode
+}
+
+function validateReportPayload(normalized) {
+  if (!normalized.schoolId || !normalized.promoterId || !normalized.term) {
+    throw new Error('学校、推广商、报备学期均为必选项。')
+  }
+
+  if (normalized.bookMode === 'single' && !normalized.bookId) {
+    throw new Error('请选择要推广的书目。')
+  }
+
+  if (normalized.bookMode === 'exclude' && !normalized.bookIds.length) {
+    throw new Error('请选择需要排除的书目。')
+  }
+}
+
+function createReport(db, payload) {
+  const normalized = normalizeReportPayload(payload)
+  validateReportPayload(normalized)
   ensureReportRefs(db, normalized)
 
-  const existing = db.reports.find(
-    (item) =>
-      item.schoolId === normalized.schoolId &&
-      item.bookId === normalized.bookId &&
-      item.term === normalized.term,
-  )
+  const existing = db.reports.find((item) => hasReportConflict(item, normalized))
   if (existing) {
-    throw new Error('该学校的该书目在当前学期已被报备，不允许重复。')
+    throw new Error('该学校当前学期已存在相同报备规则，不允许重复。')
   }
 
   const created = {
@@ -268,17 +327,8 @@ function createReport(db, payload) {
 }
 
 function updateReport(db, id, payload) {
-  const normalized = {
-    schoolId: normalizeText(payload.schoolId),
-    bookId: normalizeText(payload.bookId),
-    promoterId: normalizeText(payload.promoterId),
-    term: normalizeText(payload.term),
-    note: normalizeText(payload.note),
-  }
-
-  if (!normalized.schoolId || !normalized.bookId || !normalized.promoterId || !normalized.term) {
-    throw new Error('学校、书目、推广商、报备学期均为必选项。')
-  }
+  const normalized = normalizeReportPayload(payload)
+  validateReportPayload(normalized)
 
   const index = db.reports.findIndex((item) => item.id === id)
   if (index < 0) {
@@ -287,15 +337,9 @@ function updateReport(db, id, payload) {
 
   ensureReportRefs(db, normalized)
 
-  const duplicate = db.reports.find(
-    (item) =>
-      item.id !== id &&
-      item.schoolId === normalized.schoolId &&
-      item.bookId === normalized.bookId &&
-      item.term === normalized.term,
-  )
+  const duplicate = db.reports.find((item) => hasReportConflict(item, normalized, id))
   if (duplicate) {
-    throw new Error('该学校的该书目在当前学期已被其他推广商报备，不允许重复。')
+    throw new Error('该学校当前学期已存在相同报备规则，不允许重复。')
   }
 
   db.reports[index] = {
