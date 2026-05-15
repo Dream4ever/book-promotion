@@ -4,13 +4,13 @@ import MultiSearchSelect from './components/MultiSearchSelect.vue'
 import ModalPanel from './components/ModalPanel.vue'
 import PaginationBar from './components/PaginationBar.vue'
 import SearchSelect from './components/SearchSelect.vue'
+import { useRegistryImport } from './composables/useRegistryImport'
 import { usePagedLists } from './composables/usePagedLists'
 import { useRegistryStore } from './composables/useRegistryStore'
 import { useRegistryExport } from './composables/useRegistryExport'
 import { useRowSelection } from './composables/useRowSelection'
 import { PROVINCES } from './constants/provinces'
 import { api } from './utils/api'
-import { mapBookRows, mapPromoterRows, mapSchoolRows } from './utils/importers'
 import {
   hasReportConflict,
   normalizeReportPayload,
@@ -150,13 +150,12 @@ const {
   toggleAllSelection,
 } = useRowSelection(['schools', 'books', 'promoters', 'reports'])
 
-const importPreview = reactive({
-  visible: false,
-  kind: '',
-  rows: [],
-  columns: [],
-  fileName: '',
-  rawCount: 0,
+const { importPreview, handleImport, closeImportPreview, confirmImport } = useRegistryImport({
+  kindLabels,
+  previewColumnsByKind,
+  runAction,
+  clearSelections,
+  setMessage,
 })
 
 const schoolOptions = computed(() =>
@@ -667,57 +666,6 @@ async function submitReport() {
   } finally {
     busy.value = false
   }
-}
-
-async function handleImport(kind, event) {
-  const [file] = event.target.files || []
-  if (!file) return
-
-  try {
-    const XLSX = await import('xlsx')
-    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
-
-    const mappedRows =
-      kind === 'schools'
-        ? mapSchoolRows(rows)
-        : kind === 'books'
-          ? mapBookRows(rows)
-          : mapPromoterRows(rows)
-
-    if (!mappedRows.length) {
-      throw new Error('未解析出可导入的数据，请检查 Excel 字段名称。')
-    }
-
-    importPreview.kind = kind
-    importPreview.rows = mappedRows
-    importPreview.columns = previewColumnsByKind[kind]
-    importPreview.fileName = file.name
-    importPreview.rawCount = rows.length
-    importPreview.visible = true
-  } catch (error) {
-    setMessage(`导入预览失败：${error.message}`, 'error')
-  } finally {
-    event.target.value = ''
-  }
-}
-
-function closeImportPreview() {
-  importPreview.visible = false
-  importPreview.kind = ''
-  importPreview.rows = []
-  importPreview.columns = []
-  importPreview.fileName = ''
-  importPreview.rawCount = 0
-}
-
-function confirmImport() {
-  runAction(
-    () => api.importRows(importPreview.kind, importPreview.rows),
-    `已正式导入 ${importPreview.rows.length} 条${kindLabels[importPreview.kind]}数据。`,
-    closeImportPreview,
-  )
 }
 
 function batchDelete(kind) {
