@@ -60,9 +60,14 @@ export function mapPromoterRows(rows) {
       name: toText(row['推广商名称'] || row['推广商'] || row.name),
       contact: toText(row['联系人'] || row.contact),
       phone: toText(row['联系电话'] || row['电话'] || row.phone),
-      agencyPeriod: toText(row['代理期间'] || row['代理周期'] || row.agencyPeriod),
-      workload: toText(row['任务量'] || row.workload),
-      territories: parseTerritories(row),
+      agencyRecords: [
+        {
+          year: toText(row['代理年度'] || row.year || new Date().getFullYear()),
+          agencyPeriod: toText(row['代理期间'] || row['代理周期'] || row.agencyPeriod),
+          workload: toText(row['任务量'] || row.workload),
+          territories: parseTerritories(row),
+        },
+      ],
     }))
     .filter((row) => row.name)
 }

@@ -1009,159 +1009,119 @@
   ],
   "promoters": [
     {
-      "id": "promoter_1775832404972_2vkaml",
-      "name": "华东教育推广",
-      "contact": "王小二",
-      "phone": "123",
-      "agencyPeriod": "2026秋季",
-      "workload": "250",
-      "territories": [
-        {
-          "province": "上海",
-          "accepting": true
-        },
-        {
-          "province": "黑龙江",
-          "accepting": true
-        },
-        {
-          "province": "福建",
-          "accepting": true
-        }
-      ]
-    },
-    {
       "id": "promoter_1775832343461_m7xc6o",
       "name": "徐帆-江西浩繁",
-      "contact": "",
-      "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "contact": "22",
+      "phone": "22",
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343461_p8uz7u",
       "name": "赖斌",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343461_mjko0r",
       "name": "河北悦博",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_m8gbpw",
       "name": "陕西探索",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_n2czoq",
       "name": "郎昆",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_e5gr74",
       "name": "广东方扬",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_dls2do",
       "name": "江西铜豌豆",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_h2hzlj",
       "name": "北京敬师",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_ddac12",
       "name": "黑龙江新知",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_y9yik9",
       "name": "四川摘星",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     },
     {
       "id": "promoter_1775832343460_7f95bd",
       "name": "江西浩繁",
       "contact": "",
       "phone": "",
-      "agencyPeriod": "",
-      "workload": "",
-      "territories": []
+      "agencyRecords": []
     }
   ],
   "reports": [
     {
-      "id": "report_1775835427604_y0umwf",
-      "schoolId": "school_1775832205007_zli1kc",
+      "id": "report_1778851271934_8h0yqi",
+      "schoolId": "school_1775832205007_kojwzb",
       "bookId": "book_1775832315313_j2mnc2",
-      "promoterId": "promoter_1775832343460_y9yik9",
+      "promoterId": "promoter_1775832343460_e5gr74",
+      "term": "2026年秋",
       "note": "",
-      "createdAt": "2026-04-10T15:37:07.604Z"
+      "createdAt": "2026-05-15T13:21:11.934Z"
     },
     {
-      "id": "report_1775835327004_khkbk5",
-      "schoolId": "school_1775832205007_mxipzj",
-      "bookId": "book_1775832315313_j2mnc2",
-      "promoterId": "promoter_1775832404972_2vkaml",
+      "id": "report_1775890295774_sgbgdb",
+      "schoolId": "school_1775832205007_1nffjq",
+      "bookId": "book_1775832315313_xgyary",
+      "promoterId": "promoter_1775832343461_p8uz7u",
       "note": "",
-      "createdAt": "2026-04-10T15:35:27.004Z"
+      "createdAt": "2026-04-11T06:51:35.774Z",
+      "term": "2026年春"
     },
     {
-      "id": "report_1775835312021_vob6rl",
+      "id": "report_1775890285359_67owz3",
       "schoolId": "school_1775832205007_mxipzj",
+      "bookId": "book_1775832315313_vudkkc",
+      "promoterId": "promoter_1775832343461_p8uz7u",
+      "note": "",
+      "createdAt": "2026-04-11T06:51:25.359Z",
+      "term": "2026年春"
+    },
+    {
+      "id": "report_1775890275646_mhxi26",
+      "schoolId": "school_1775832205007_kq8vc5",
       "bookId": "book_1775832315313_vudkkc",
       "promoterId": "promoter_1775832343461_m7xc6o",
       "note": "",
-      "createdAt": "2026-04-10T15:35:12.021Z"
-    },
-    {
-      "id": "report_1775832483964_9gwfgm",
-      "schoolId": "school_1775832205007_kojwzb",
-      "bookId": "book_1775832315313_j2mnc2",
-      "promoterId": "promoter_1775832404972_2vkaml",
-      "note": "",
-      "createdAt": "2026-04-10T14:48:03.964Z"
+      "createdAt": "2026-04-11T06:51:15.646Z",
+      "term": "2026年春"
     }
   ]
 }

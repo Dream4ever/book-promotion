@@ -137,14 +137,44 @@ function updateBook(db, id, payload) {
 }
 
 function buildPromoterPayload(payload) {
+  const agencyRecords = Array.isArray(payload.agencyRecords)
+    ? payload.agencyRecords
+        .map((item) => ({
+          id: normalizeText(item.id) || createId('agency'),
+          year: normalizeText(item.year),
+          agencyPeriod: normalizeText(item.agencyPeriod),
+          workload: normalizeText(item.workload),
+          territories: normalizeTerritories(item.territories),
+        }))
+        .filter(
+          (item) => item.year,
+        )
+    : []
+
   return {
     name: normalizeText(payload.name),
     contact: normalizeText(payload.contact),
     phone: normalizeText(payload.phone),
-    agencyPeriod: normalizeText(payload.agencyPeriod),
-    workload: normalizeText(payload.workload),
-    territories: normalizeTerritories(payload.territories),
+    agencyRecords,
   }
+}
+
+function mergeAgencyRecords(existingRecords, nextRecords) {
+  const merged = new Map()
+
+  for (const record of existingRecords || []) {
+    if (record?.year) {
+      merged.set(record.year, record)
+    }
+  }
+
+  for (const record of nextRecords || []) {
+    if (record?.year) {
+      merged.set(record.year, record)
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => Number(b.year) - Number(a.year))
 }
 
 function upsertPromoter(db, payload) {
@@ -158,7 +188,11 @@ function upsertPromoter(db, payload) {
   )
 
   if (index >= 0) {
-    db.promoters[index] = { ...db.promoters[index], ...normalized }
+    db.promoters[index] = {
+      ...db.promoters[index],
+      ...normalized,
+      agencyRecords: mergeAgencyRecords(db.promoters[index].agencyRecords, normalized.agencyRecords),
+    }
     return db.promoters[index]
   }
 
@@ -204,20 +238,24 @@ function createReport(db, payload) {
     schoolId: normalizeText(payload.schoolId),
     bookId: normalizeText(payload.bookId),
     promoterId: normalizeText(payload.promoterId),
+    term: normalizeText(payload.term),
     note: normalizeText(payload.note),
   }
 
-  if (!normalized.schoolId || !normalized.bookId || !normalized.promoterId) {
-    throw new Error('学校、书目、推广商均为必选项。')
+  if (!normalized.schoolId || !normalized.bookId || !normalized.promoterId || !normalized.term) {
+    throw new Error('学校、书目、推广商、报备学期均为必选项。')
   }
 
   ensureReportRefs(db, normalized)
 
   const existing = db.reports.find(
-    (item) => item.schoolId === normalized.schoolId && item.bookId === normalized.bookId,
+    (item) =>
+      item.schoolId === normalized.schoolId &&
+      item.bookId === normalized.bookId &&
+      item.term === normalized.term,
   )
   if (existing) {
-    throw new Error('该学校的该书目已被报备，不允许重复。')
+    throw new Error('该学校的该书目在当前学期已被报备，不允许重复。')
   }
 
   const created = {
@@ -234,11 +272,12 @@ function updateReport(db, id, payload) {
     schoolId: normalizeText(payload.schoolId),
     bookId: normalizeText(payload.bookId),
     promoterId: normalizeText(payload.promoterId),
+    term: normalizeText(payload.term),
     note: normalizeText(payload.note),
   }
 
-  if (!normalized.schoolId || !normalized.bookId || !normalized.promoterId) {
-    throw new Error('学校、书目、推广商均为必选项。')
+  if (!normalized.schoolId || !normalized.bookId || !normalized.promoterId || !normalized.term) {
+    throw new Error('学校、书目、推广商、报备学期均为必选项。')
   }
 
   const index = db.reports.findIndex((item) => item.id === id)
@@ -252,10 +291,11 @@ function updateReport(db, id, payload) {
     (item) =>
       item.id !== id &&
       item.schoolId === normalized.schoolId &&
-      item.bookId === normalized.bookId,
+      item.bookId === normalized.bookId &&
+      item.term === normalized.term,
   )
   if (duplicate) {
-    throw new Error('该学校的该书目已被其他推广商报备，不允许重复。')
+    throw new Error('该学校的该书目在当前学期已被其他推广商报备，不允许重复。')
   }
 
   db.reports[index] = {

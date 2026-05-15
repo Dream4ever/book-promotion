@@ -11,6 +11,7 @@ import { downloadExcel } from './utils/exporters'
 import { mapBookRows, mapPromoterRows, mapSchoolRows } from './utils/importers'
 
 const PAGE_SIZE = 20
+const CURRENT_YEAR = new Date().getFullYear()
 
 const store = useRegistryStore()
 
@@ -29,6 +30,11 @@ const kindLabels = {
   reports: '报备记录',
 }
 
+const termOptions = Array.from({ length: 8 }, (_, index) => {
+  const year = CURRENT_YEAR - 2 + index
+  return [`${year}年春`, `${year}年秋`]
+}).flat()
+
 const previewColumnsByKind = {
   schools: [
     { key: 'province', label: '省份' },
@@ -43,9 +49,7 @@ const previewColumnsByKind = {
     { key: 'name', label: '推广商名称' },
     { key: 'contact', label: '联系人' },
     { key: 'phone', label: '联系电话' },
-    { key: 'territories', label: '代理省份' },
-    { key: 'agencyPeriod', label: '代理期间' },
-    { key: 'workload', label: '任务量' },
+    { key: 'agencyRecords', label: '年度代理记录' },
   ],
 }
 
@@ -72,9 +76,11 @@ const modal = reactive({
   book: false,
   promoter: false,
   report: false,
+  analyticsDetail: false,
 })
 
 const analyticsFilters = reactive({
+  term: '',
   province: '',
   promoterId: '',
   bookId: '',
@@ -86,13 +92,27 @@ const promoterForm = reactive({
   name: '',
   contact: '',
   phone: '',
+  agencyRecordId: '',
+  agencyYear: String(CURRENT_YEAR),
   agencyPeriod: '',
   workload: '',
   province: '',
   accepting: true,
   territories: [],
+  agencyRecords: [],
 })
-const reportForm = reactive({ schoolId: '', bookId: '', promoterId: '', note: '' })
+const reportForm = reactive({
+  schoolId: '',
+  bookId: '',
+  promoterId: '',
+  term: '',
+  note: '',
+})
+
+const analyticsDetail = reactive({
+  title: '',
+  rows: [],
+})
 
 const editing = reactive({
   schoolId: '',
@@ -139,9 +159,9 @@ const promoterOptions = computed(() =>
   store.state.promoters.map((promoter) => ({
     id: promoter.id,
     label: promoter.name,
-    keywords: `${promoter.name} ${promoter.contact} ${promoter.phone} ${promoter.territories
-      .map((item) => item.province)
-      .join(' ')}`,
+    keywords: `${promoter.name} ${promoter.contact} ${promoter.phone} ${formatAgencyRecordsText(
+      getAgencyRecords(promoter),
+    )}`,
     meta: `${promoter.contact || '未填写联系人'} / ${promoter.phone || '未填写电话'}`,
   })),
 )
@@ -160,6 +180,7 @@ const joinedReports = computed(() =>
       bookTitle: book?.title || '书目已删除',
       isbn: book?.isbn || '',
       bookLabel: book ? `${book.title} (${book.isbn})` : '书目已删除',
+      term: resolveReportTerm(report),
       promoterName: promoter?.name || '推广商已删除',
       promoterLabel: promoter?.name || '推广商已删除',
     }
@@ -186,7 +207,7 @@ const promoterFiltered = computed(() => {
   const keyword = search.promoters.trim().toLowerCase()
   if (!keyword) return store.state.promoters
   return store.state.promoters.filter((item) =>
-    `${item.name} ${item.contact} ${item.phone} ${promoterTerritoryText(item.territories)} ${item.agencyPeriod} ${item.workload}`
+    `${item.name} ${item.contact} ${item.phone} ${formatAgencyRecordsText(getAgencyRecords(item))}`
       .toLowerCase()
       .includes(keyword),
   )
@@ -196,7 +217,7 @@ const reportFiltered = computed(() => {
   const keyword = search.reports.trim().toLowerCase()
   if (!keyword) return joinedReports.value
   return joinedReports.value.filter((item) =>
-    `${item.province} ${item.schoolName} ${item.bookTitle} ${item.isbn} ${item.promoterName} ${item.note}`
+    `${item.term} ${item.province} ${item.schoolName} ${item.bookTitle} ${item.isbn} ${item.promoterName} ${item.note}`
       .toLowerCase()
       .includes(keyword),
   )
@@ -212,12 +233,14 @@ const conflictRecord = computed(() =>
     (item) =>
       item.id !== editing.reportId &&
       item.schoolId === reportForm.schoolId &&
-      item.bookId === reportForm.bookId,
+      item.bookId === reportForm.bookId &&
+      resolveReportTerm(item) === normalizeTermText(reportForm.term),
   ),
 )
 
 const analyticsReportRows = computed(() =>
   joinedReports.value.filter((item) => {
+    if (analyticsFilters.term && item.term !== analyticsFilters.term) return false
     if (analyticsFilters.province && item.province !== analyticsFilters.province) return false
     if (analyticsFilters.promoterId && item.promoterId !== analyticsFilters.promoterId) return false
     if (analyticsFilters.bookId && item.bookId !== analyticsFilters.bookId) return false
@@ -356,11 +379,14 @@ function resetPromoterForm() {
   promoterForm.name = ''
   promoterForm.contact = ''
   promoterForm.phone = ''
+  promoterForm.agencyRecordId = ''
+  promoterForm.agencyYear = String(CURRENT_YEAR)
   promoterForm.agencyPeriod = ''
   promoterForm.workload = ''
   promoterForm.province = ''
   promoterForm.accepting = true
   promoterForm.territories = []
+  promoterForm.agencyRecords = []
   editing.promoterId = ''
 }
 
@@ -368,6 +394,7 @@ function resetReportForm() {
   reportForm.schoolId = ''
   reportForm.bookId = ''
   reportForm.promoterId = ''
+  reportForm.term = ''
   reportForm.note = ''
   editing.reportId = ''
 }
@@ -420,11 +447,17 @@ function openPromoterModal(promoter = null) {
     promoterForm.name = promoter.name
     promoterForm.contact = promoter.contact
     promoterForm.phone = promoter.phone
-    promoterForm.agencyPeriod = promoter.agencyPeriod
-    promoterForm.workload = promoter.workload
+    promoterForm.agencyRecordId = ''
+    promoterForm.agencyYear = String(CURRENT_YEAR)
+    promoterForm.agencyPeriod = ''
+    promoterForm.workload = ''
     promoterForm.province = ''
     promoterForm.accepting = true
-    promoterForm.territories = promoter.territories.map((item) => ({ ...item }))
+    promoterForm.territories = []
+    promoterForm.agencyRecords = getAgencyRecords(promoter).map((item) => ({
+      ...item,
+      territories: (item.territories || []).map((territory) => ({ ...territory })),
+    }))
     editing.promoterId = promoter.id
   } else {
     resetPromoterForm()
@@ -437,6 +470,7 @@ function openReportModal(report = null) {
     reportForm.schoolId = report.schoolId
     reportForm.bookId = report.bookId
     reportForm.promoterId = report.promoterId
+    reportForm.term = resolveReportTerm(report)
     reportForm.note = report.note || ''
     editing.reportId = report.id
   } else {
@@ -480,6 +514,67 @@ function addPromoterTerritory() {
   promoterForm.accepting = true
 }
 
+function saveAgencyRecord() {
+  if (!promoterForm.agencyYear) {
+    setMessage('请填写代理年度。', 'error')
+    return
+  }
+
+  const record = {
+    id: promoterForm.agencyRecordId || `agency_${Date.now()}`,
+    year: promoterForm.agencyYear,
+    agencyPeriod: promoterForm.agencyPeriod,
+    workload: promoterForm.workload,
+    territories: promoterForm.territories.map((item) => ({ ...item })),
+  }
+
+  const duplicateYear = promoterForm.agencyRecords.find(
+    (item) => item.id !== promoterForm.agencyRecordId && item.year === record.year,
+  )
+  if (duplicateYear) {
+    setMessage('同一推广商同一年只能保留一条代理记录。', 'error')
+    return
+  }
+
+  if (promoterForm.agencyRecordId) {
+    promoterForm.agencyRecords = promoterForm.agencyRecords.map((item) =>
+      item.id === promoterForm.agencyRecordId ? record : item,
+    )
+  } else {
+    promoterForm.agencyRecords.push(record)
+  }
+
+  promoterForm.agencyRecords.sort((a, b) => Number(b.year) - Number(a.year))
+  clearAgencyRecordDraft()
+}
+
+function editAgencyRecord(record) {
+  promoterForm.agencyRecordId = record.id
+  promoterForm.agencyYear = record.year
+  promoterForm.agencyPeriod = record.agencyPeriod
+  promoterForm.workload = record.workload
+  promoterForm.province = ''
+  promoterForm.accepting = true
+  promoterForm.territories = record.territories.map((item) => ({ ...item }))
+}
+
+function removeAgencyRecord(recordId) {
+  promoterForm.agencyRecords = promoterForm.agencyRecords.filter((item) => item.id !== recordId)
+  if (promoterForm.agencyRecordId === recordId) {
+    clearAgencyRecordDraft()
+  }
+}
+
+function clearAgencyRecordDraft() {
+  promoterForm.agencyRecordId = ''
+  promoterForm.agencyYear = String(CURRENT_YEAR)
+  promoterForm.agencyPeriod = ''
+  promoterForm.workload = ''
+  promoterForm.province = ''
+  promoterForm.accepting = true
+  promoterForm.territories = []
+}
+
 function removePromoterTerritory(province) {
   promoterForm.territories = promoterForm.territories.filter((item) => item.province !== province)
 }
@@ -504,6 +599,10 @@ function submitBook() {
 
 function submitPromoter() {
   const isEditing = Boolean(editing.promoterId)
+  if (!promoterForm.agencyRecords.length) {
+    setMessage('请至少添加一条年度代理记录。', 'error')
+    return
+  }
   runAction(
     () =>
       isEditing
@@ -516,6 +615,7 @@ function submitPromoter() {
 
 function submitReport() {
   const isEditing = Boolean(editing.reportId)
+  reportForm.term = normalizeTermText(reportForm.term)
   runAction(
     () => (isEditing ? api.updateReport(editing.reportId, reportForm) : api.createReport(reportForm)),
     isEditing ? '报备记录已修改，并同步写入 JSON 文件。' : '报备成功，记录已写入项目目录 JSON 文件。',
@@ -594,6 +694,59 @@ function promoterTerritoryText(territories) {
     .join('、')
 }
 
+function getAgencyRecords(promoter) {
+  if (Array.isArray(promoter?.agencyRecords) && promoter.agencyRecords.length) {
+    return promoter.agencyRecords
+  }
+
+  const legacyTerritories = Array.isArray(promoter?.territories) ? promoter.territories : []
+  const hasLegacyAgencyData =
+    promoter?.agencyYear ||
+    promoter?.agencyPeriod ||
+    promoter?.workload ||
+    legacyTerritories.length
+
+  if (!hasLegacyAgencyData) return []
+
+  return [
+    {
+      id: promoter?.id ? `${promoter.id}_legacy` : `legacy_${Date.now()}`,
+      year: String(promoter?.agencyYear || CURRENT_YEAR),
+      agencyPeriod: promoter?.agencyPeriod || '',
+      workload: promoter?.workload || '',
+      territories: legacyTerritories,
+    },
+  ]
+}
+
+function normalizeTermText(value) {
+  return String(value ?? '').trim()
+}
+
+function resolveReportTerm(report) {
+  if (normalizeTermText(report?.term)) return normalizeTermText(report.term)
+  const date = report?.createdAt ? new Date(report.createdAt) : new Date()
+  const isInvalid = Number.isNaN(date.getTime())
+  const year = isInvalid ? CURRENT_YEAR : date.getFullYear()
+  const month = isInvalid ? new Date().getMonth() + 1 : date.getMonth() + 1
+  return `${year}年${month >= 8 ? '秋' : '春'}`
+}
+
+function formatAgencyRecordsText(records) {
+  if (!records?.length) return '未配置'
+  return records
+    .map(
+      (item) =>
+        `${item.year}年: ${promoterTerritoryText(item.territories)} / ${item.agencyPeriod || '-'} / ${item.workload || '-'}`,
+    )
+    .join('；')
+}
+
+function latestAgencyRecord(records) {
+  if (!records?.length) return null
+  return [...records].sort((a, b) => Number(b.year) - Number(a.year))[0]
+}
+
 function formatTime(value) {
   return new Date(value).toLocaleString('zh-CN', {
     year: 'numeric',
@@ -605,13 +758,29 @@ function formatTime(value) {
 }
 
 function formatPreviewValue(kind, row, key) {
-  if (kind === 'promoters' && key === 'territories') {
-    return promoterTerritoryText(row.territories)
-  }
   if (kind === 'books' && key === 'price') {
     return `￥${Number(row.price || 0).toFixed(2)}`
   }
+  if (kind === 'promoters' && key === 'agencyRecords') {
+    return formatAgencyRecordsText(row.agencyRecords)
+  }
   return row[key] || '-'
+}
+
+function openAnalyticsDetail(title, rows) {
+  analyticsDetail.title = title
+  analyticsDetail.rows = rows
+  modal.analyticsDetail = true
+}
+
+function closeAnalyticsDetail() {
+  analyticsDetail.title = ''
+  analyticsDetail.rows = []
+  modal.analyticsDetail = false
+}
+
+function analyticsRowsBy(field, value) {
+  return analyticsReportRows.value.filter((item) => item[field] === value)
 }
 
 function getFilteredRowsByKind(kind) {
@@ -646,13 +815,12 @@ function mapRowsForExport(kind, rows) {
       推广商名称: item.name,
       联系人: item.contact,
       联系电话: item.phone,
-      代理省份: promoterTerritoryText(item.territories),
-      代理期间: item.agencyPeriod,
-      任务量: item.workload,
+      年度代理记录: formatAgencyRecordsText(getAgencyRecords(item)),
     }))
   }
   if (kind === 'reports') {
     return rows.map((item) => ({
+      报备学期: item.term,
       省份: item.province,
       学校名称: item.schoolName,
       书名: item.bookTitle,
@@ -688,6 +856,7 @@ function exportAnalytics() {
   downloadExcel(
     `统计报表_${Date.now()}.xlsx`,
     analyticsReportRows.value.map((item) => ({
+      报备学期: item.term,
       省份: item.province,
       学校名称: item.schoolName,
       书名: item.bookTitle,
@@ -699,6 +868,20 @@ function exportAnalytics() {
     '统计报表',
   )
   setMessage(`已导出 ${analyticsReportRows.value.length} 条统计报表明细。`)
+}
+
+function exportAnalyticsDetail() {
+  if (!analyticsDetail.rows.length) {
+    setMessage('当前没有可导出的统计明细。', 'error')
+    return
+  }
+
+  downloadExcel(
+    `统计明细_${Date.now()}.xlsx`,
+    mapRowsForExport('reports', analyticsDetail.rows),
+    '统计明细',
+  )
+  setMessage(`已导出 ${analyticsDetail.rows.length} 条统计明细。`)
 }
 
 onMounted(async () => {
@@ -719,7 +902,7 @@ onMounted(async () => {
       </h1>
       <p class="mt-4 max-w-4xl text-sm leading-7 text-sand-700 sm:text-base">
         所有数据统一保存在项目目录下的 <span class="font-medium">data/db.json</span>。
-        同一个学校的同一个书目只能由一个推广商报备。
+        同一个学校的同一个书目在同一个学期只能由一个推广商报备。
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
         <button
@@ -879,9 +1062,9 @@ onMounted(async () => {
               <th class="px-3 py-3 font-medium">推广商</th>
               <th class="px-3 py-3 font-medium">联系人</th>
               <th class="px-3 py-3 font-medium">联系电话</th>
-              <th class="px-3 py-3 font-medium">代理省份 / 接单</th>
-              <th class="px-3 py-3 font-medium">代理期间</th>
-              <th class="px-3 py-3 font-medium">任务量</th>
+              <th class="px-3 py-3 font-medium">最近代理年度</th>
+              <th class="px-3 py-3 font-medium">最新代理配置</th>
+              <th class="px-3 py-3 font-medium">历史记录数</th>
               <th class="px-3 py-3 font-medium">操作</th>
             </tr>
           </thead>
@@ -893,9 +1076,11 @@ onMounted(async () => {
               <td class="px-3 py-3 font-medium text-sand-900">{{ promoter.name }}</td>
               <td class="px-3 py-3">{{ promoter.contact || '-' }}</td>
               <td class="px-3 py-3">{{ promoter.phone || '-' }}</td>
-              <td class="px-3 py-3 text-xs leading-6 text-sand-700">{{ promoterTerritoryText(promoter.territories) }}</td>
-              <td class="px-3 py-3">{{ promoter.agencyPeriod || '-' }}</td>
-              <td class="px-3 py-3">{{ promoter.workload || '-' }}</td>
+              <td class="px-3 py-3">{{ latestAgencyRecord(getAgencyRecords(promoter))?.year || '-' }}</td>
+              <td class="px-3 py-3 text-xs leading-6 text-sand-700">
+                {{ latestAgencyRecord(getAgencyRecords(promoter)) ? `${promoterTerritoryText(latestAgencyRecord(getAgencyRecords(promoter)).territories)} / ${latestAgencyRecord(getAgencyRecords(promoter)).agencyPeriod || '-'} / ${latestAgencyRecord(getAgencyRecords(promoter)).workload || '-'}` : '-' }}
+              </td>
+              <td class="px-3 py-3">{{ getAgencyRecords(promoter).length }}</td>
               <td class="px-3 py-3">
                 <div class="flex flex-wrap gap-2">
                   <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="openPromoterModal(promoter)">编辑</button>
@@ -919,7 +1104,7 @@ onMounted(async () => {
           <p class="mt-1 text-sm text-sand-600">报备时支持模糊查询，修改时仍校验唯一性。</p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <input v-model="search.reports" class="field-input w-72" type="text" placeholder="搜索省份 / 学校 / 书目 / 推广商" />
+          <input v-model="search.reports" class="field-input w-72" type="text" placeholder="搜索学期 / 省份 / 学校 / 书目 / 推广商" />
           <button type="button" class="primary-button" :disabled="busy" @click="openReportModal()">新增报备</button>
           <button type="button" class="secondary-button" @click="exportRows('reports')">导出筛选结果</button>
           <button type="button" class="secondary-button" :disabled="!selectedIds.reports.length" @click="exportRows('reports', true)">导出已选</button>
@@ -933,6 +1118,7 @@ onMounted(async () => {
               <th class="px-3 py-3 font-medium">
                 <input type="checkbox" :checked="areAllSelected('reports', reportPageRows)" @change="toggleAllSelection('reports', reportPageRows, $event.target.checked)" />
               </th>
+              <th class="px-3 py-3 font-medium">报备学期</th>
               <th class="px-3 py-3 font-medium">省份 / 学校</th>
               <th class="px-3 py-3 font-medium">书目</th>
               <th class="px-3 py-3 font-medium">推广商</th>
@@ -946,6 +1132,7 @@ onMounted(async () => {
               <td class="px-3 py-3">
                 <input type="checkbox" :checked="isSelected('reports', report.id)" @change="toggleRowSelection('reports', report.id, $event.target.checked)" />
               </td>
+              <td class="px-3 py-3">{{ report.term }}</td>
               <td class="px-3 py-3">{{ report.schoolLabel }}</td>
               <td class="px-3 py-3">{{ report.bookLabel }}</td>
               <td class="px-3 py-3">{{ report.promoterLabel }}</td>
@@ -959,7 +1146,7 @@ onMounted(async () => {
               </td>
             </tr>
             <tr v-if="!reportPageRows.length">
-              <td colspan="7" class="px-3 py-8 text-center text-sand-500">暂无报备记录</td>
+              <td colspan="8" class="px-3 py-8 text-center text-sand-500">暂无报备记录</td>
             </tr>
           </tbody>
         </table>
@@ -975,6 +1162,10 @@ onMounted(async () => {
             <p class="mt-1 text-sm text-sand-600">按省份、推广商、书目筛选当前报备记录并统计。</p>
           </div>
           <div class="flex flex-wrap gap-3">
+            <select v-model="analyticsFilters.term" class="field-input w-40">
+              <option value="">全部学期</option>
+              <option v-for="term in termOptions" :key="term" :value="term">{{ term }}</option>
+            </select>
             <select v-model="analyticsFilters.province" class="field-input w-40">
               <option value="">全部省份</option>
               <option v-for="province in PROVINCES" :key="province" :value="province">{{ province }}</option>
@@ -1012,7 +1203,11 @@ onMounted(async () => {
               <tbody>
                 <tr v-for="row in provinceStats" :key="row.省份" class="border-b border-sand-100">
                   <td class="px-3 py-3">{{ row.省份 }}</td>
-                  <td class="px-3 py-3">{{ row.报备数量 }}</td>
+                  <td class="px-3 py-3">
+                    <button type="button" class="text-pine-600 underline-offset-4 hover:underline" @click="openAnalyticsDetail(`${row.省份} 报备明细`, analyticsRowsBy('province', row.省份))">
+                      {{ row.报备数量 }}
+                    </button>
+                  </td>
                 </tr>
                 <tr v-if="!provinceStats.length">
                   <td colspan="2" class="px-3 py-8 text-center text-sand-500">暂无统计数据</td>
@@ -1035,7 +1230,11 @@ onMounted(async () => {
               <tbody>
                 <tr v-for="row in promoterStats" :key="row.推广商" class="border-b border-sand-100">
                   <td class="px-3 py-3">{{ row.推广商 }}</td>
-                  <td class="px-3 py-3">{{ row.报备数量 }}</td>
+                  <td class="px-3 py-3">
+                    <button type="button" class="text-pine-600 underline-offset-4 hover:underline" @click="openAnalyticsDetail(`${row.推广商} 报备明细`, analyticsRowsBy('promoterName', row.推广商))">
+                      {{ row.报备数量 }}
+                    </button>
+                  </td>
                 </tr>
                 <tr v-if="!promoterStats.length">
                   <td colspan="2" class="px-3 py-8 text-center text-sand-500">暂无统计数据</td>
@@ -1058,7 +1257,11 @@ onMounted(async () => {
               <tbody>
                 <tr v-for="row in bookStats" :key="row.书目" class="border-b border-sand-100">
                   <td class="px-3 py-3">{{ row.书目 }}</td>
-                  <td class="px-3 py-3">{{ row.报备数量 }}</td>
+                  <td class="px-3 py-3">
+                    <button type="button" class="text-pine-600 underline-offset-4 hover:underline" @click="openAnalyticsDetail(`${row.书目} 报备明细`, analyticsRowsBy('bookTitle', row.书目))">
+                      {{ row.报备数量 }}
+                    </button>
+                  </td>
                 </tr>
                 <tr v-if="!bookStats.length">
                   <td colspan="2" class="px-3 py-8 text-center text-sand-500">暂无统计数据</td>
@@ -1111,7 +1314,10 @@ onMounted(async () => {
       </template>
     </ModalPanel>
 
-    <ModalPanel :visible="modal.promoter" :title="editing.promoterId ? '修改推广商' : '新增推广商'" max-width-class="max-w-4xl" @close="closePromoterModal">
+    <ModalPanel :visible="modal.promoter" :title="editing.promoterId ? '修改推广商' : '新增推广商'" max-width-class="max-w-5xl" @close="closePromoterModal">
+      <template #description>
+        <p class="mt-2 text-sm text-sand-600">代理配置按年度保存，同一推广商同一年仅保留一条记录。</p>
+      </template>
       <div class="grid gap-4">
         <div>
           <label class="label-text">推广商名称</label>
@@ -1127,40 +1333,93 @@ onMounted(async () => {
             <input v-model="promoterForm.phone" class="field-input" type="text" placeholder="手机号或座机" />
           </div>
         </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label class="label-text">代理期间</label>
-            <input v-model="promoterForm.agencyPeriod" class="field-input" type="text" placeholder="例如：2026.01-2026.12" />
-          </div>
-          <div>
-            <label class="label-text">任务量</label>
-            <input v-model="promoterForm.workload" class="field-input" type="text" placeholder="例如：年度目标 50 校" />
-          </div>
-        </div>
-        <div class="rounded-2xl border border-sand-200 bg-sand-50 p-4">
-          <div class="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+        <div class="grid gap-4 rounded-2xl border border-sand-200 bg-sand-50 p-5">
+          <div class="flex items-center justify-between gap-3">
             <div>
-              <label class="label-text">代理省份</label>
-              <select v-model="promoterForm.province" class="field-input">
-                <option value="">请选择省份</option>
-                <option v-for="province in PROVINCES" :key="province" :value="province">{{ province }}</option>
-              </select>
+              <h4 class="text-base font-semibold text-sand-900">年度代理记录</h4>
+              <p class="mt-1 text-sm text-sand-600">先编辑某一年度的代理信息，再加入下方历史记录列表。</p>
+            </div>
+            <span class="tag">{{ promoterForm.agencyRecords.length }} 条历史记录</span>
+          </div>
+          <div class="grid gap-4 lg:grid-cols-3">
+            <div>
+              <label class="label-text">代理年度</label>
+              <input v-model="promoterForm.agencyYear" class="field-input" type="number" min="2000" max="2100" placeholder="例如：2026" />
             </div>
             <div>
-              <label class="label-text">是否接单</label>
-              <select v-model="promoterForm.accepting" class="field-input">
-                <option :value="true">接单</option>
-                <option :value="false">不接单</option>
-              </select>
+              <label class="label-text">代理期间</label>
+              <input v-model="promoterForm.agencyPeriod" class="field-input" type="text" placeholder="例如：2026.01-2026.12" />
             </div>
-            <button type="button" class="secondary-button" @click="addPromoterTerritory">添加省份</button>
+            <div>
+              <label class="label-text">任务量</label>
+              <input v-model="promoterForm.workload" class="field-input" type="text" placeholder="例如：年度目标 50 校" />
+            </div>
           </div>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <div v-for="territory in promoterForm.territories" :key="territory.province" class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm text-sand-800">
-              <span>{{ territory.province }} / {{ territory.accepting ? '接单' : '不接单' }}</span>
-              <button type="button" class="text-sand-400 transition hover:text-red-600" @click="removePromoterTerritory(territory.province)">删除</button>
+          <div class="rounded-2xl border border-sand-200 bg-white p-4">
+            <div class="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+              <div>
+                <label class="label-text">代理省份</label>
+                <select v-model="promoterForm.province" class="field-input">
+                  <option value="">请选择省份</option>
+                  <option v-for="province in PROVINCES" :key="province" :value="province">{{ province }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="label-text">是否接单</label>
+                <select v-model="promoterForm.accepting" class="field-input">
+                  <option :value="true">接单</option>
+                  <option :value="false">不接单</option>
+                </select>
+              </div>
+              <button type="button" class="secondary-button" @click="addPromoterTerritory">添加省份</button>
             </div>
-            <div v-if="!promoterForm.territories.length" class="text-sm text-sand-500">还没有配置代理省份</div>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <div
+                v-for="territory in promoterForm.territories"
+                :key="territory.province"
+                class="inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-2 text-sm text-sand-800"
+              >
+                <span>{{ territory.province }} / {{ territory.accepting ? '接单' : '不接单' }}</span>
+                <button type="button" class="text-sand-400 transition hover:text-red-600" @click="removePromoterTerritory(territory.province)">删除</button>
+              </div>
+              <div v-if="!promoterForm.territories.length" class="text-sm text-sand-500">当前年度还没有配置代理省份</div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button type="button" class="secondary-button" @click="saveAgencyRecord">
+              {{ promoterForm.agencyRecordId ? '保存年度记录' : '加入年度记录' }}
+            </button>
+            <button type="button" class="secondary-button" @click="clearAgencyRecordDraft">清空当前年度</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+              <thead class="border-b border-sand-200 text-sand-500">
+                <tr>
+                  <th class="px-3 py-3 font-medium">年度</th>
+                  <th class="px-3 py-3 font-medium">代理省份配置</th>
+                  <th class="px-3 py-3 font-medium">代理期间</th>
+                  <th class="px-3 py-3 font-medium">任务量</th>
+                  <th class="px-3 py-3 font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="record in promoterForm.agencyRecords" :key="record.id" class="border-b border-sand-100 align-top">
+                  <td class="px-3 py-3 font-medium text-sand-900">{{ record.year }}年</td>
+                  <td class="px-3 py-3 text-xs leading-6 text-sand-700">{{ promoterTerritoryText(record.territories) }}</td>
+                  <td class="px-3 py-3">{{ record.agencyPeriod || '-' }}</td>
+                  <td class="px-3 py-3">{{ record.workload || '-' }}</td>
+                  <td class="px-3 py-3">
+                    <div class="flex flex-wrap gap-2">
+                      <button type="button" class="secondary-button !px-3 !py-2 !text-xs" @click="editAgencyRecord(record)">编辑</button>
+                      <button type="button" class="danger-button" @click="removeAgencyRecord(record.id)">删除</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="!promoterForm.agencyRecords.length">
+                  <td colspan="5" class="px-3 py-8 text-center text-sand-500">还没有保存年度代理记录</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -1172,6 +1431,19 @@ onMounted(async () => {
 
     <ModalPanel :visible="modal.report" :title="editing.reportId ? '修改报备' : '新增报备'" max-width-class="max-w-4xl" @close="closeReportModal">
       <div class="grid gap-4">
+        <div>
+          <label class="label-text">报备学期</label>
+          <input
+            v-model="reportForm.term"
+            class="field-input"
+            type="text"
+            list="report-term-options"
+            placeholder="例如：2026年春 或 2026年秋"
+          />
+          <datalist id="report-term-options">
+            <option v-for="term in termOptions" :key="term" :value="term" />
+          </datalist>
+        </div>
         <div>
           <label class="label-text">学校</label>
           <SearchSelect v-model="reportForm.schoolId" :options="schoolOptions" placeholder="输入省份或学校名称" empty-text="未匹配到学校" />
@@ -1189,12 +1461,51 @@ onMounted(async () => {
           <textarea v-model="reportForm.note" class="field-input min-h-24" placeholder="可选"></textarea>
         </div>
         <div v-if="conflictRecord" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          当前组合已被 <span class="font-semibold">{{ promoterOptions.find((item) => item.id === conflictRecord.promoterId)?.label || '其他推广商' }}</span> 报备，系统会阻止重复提交。
+          {{ conflictRecord.term }} 的当前组合已被
+          <span class="font-semibold">{{ promoterOptions.find((item) => item.id === conflictRecord.promoterId)?.label || '其他推广商' }}</span>
+          报备，系统会阻止重复提交。
         </div>
       </div>
       <template #footer>
         <button type="button" class="secondary-button" :disabled="busy" @click="closeReportModal">取消</button>
         <button type="button" class="primary-button" :disabled="busy" @click="submitReport">{{ editing.reportId ? '保存修改' : '确认新增' }}</button>
+      </template>
+    </ModalPanel>
+
+    <ModalPanel :visible="modal.analyticsDetail" :title="analyticsDetail.title || '统计明细'" max-width-class="max-w-6xl" @close="closeAnalyticsDetail">
+      <template #description>
+        <p class="mt-2 text-sm text-sand-600">共 {{ analyticsDetail.rows.length }} 条报备记录，保留历史学期数据可直接查询。</p>
+      </template>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead class="border-b border-sand-200 text-sand-500">
+            <tr>
+              <th class="px-3 py-3 font-medium">报备学期</th>
+              <th class="px-3 py-3 font-medium">省份 / 学校</th>
+              <th class="px-3 py-3 font-medium">书目</th>
+              <th class="px-3 py-3 font-medium">推广商</th>
+              <th class="px-3 py-3 font-medium">备注</th>
+              <th class="px-3 py-3 font-medium">报备时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in analyticsDetail.rows" :key="row.id" class="border-b border-sand-100 align-top">
+              <td class="px-3 py-3">{{ row.term }}</td>
+              <td class="px-3 py-3">{{ row.schoolLabel }}</td>
+              <td class="px-3 py-3">{{ row.bookLabel }}</td>
+              <td class="px-3 py-3">{{ row.promoterLabel }}</td>
+              <td class="px-3 py-3 text-sand-700">{{ row.note || '-' }}</td>
+              <td class="px-3 py-3">{{ formatTime(row.updatedAt || row.createdAt) }}</td>
+            </tr>
+            <tr v-if="!analyticsDetail.rows.length">
+              <td colspan="6" class="px-3 py-8 text-center text-sand-500">暂无明细数据</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <template #footer>
+        <button type="button" class="secondary-button" @click="closeAnalyticsDetail">关闭</button>
+        <button type="button" class="primary-button" @click="exportAnalyticsDetail">导出明细</button>
       </template>
     </ModalPanel>
 
