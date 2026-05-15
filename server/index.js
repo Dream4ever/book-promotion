@@ -2,7 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { createId, normalizeTerritories, normalizeText, readDb, writeDb } from './db.js'
+import { createId, normalizeTerritories, normalizeText } from './db.js'
+import { runDbMutation, runDbRead } from './routeHelpers.js'
 import { hasReportConflict, normalizeReportPayload } from '../shared/reportRules.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -13,10 +14,6 @@ const PORT = 3001
 
 app.use(cors())
 app.use(express.json({ limit: '2mb' }))
-
-function sendError(res, message, status = 400) {
-  res.status(status).json({ message })
-}
 
 function getRowsByKind(db, kind) {
   if (kind === 'schools') return db.schools
@@ -312,100 +309,43 @@ function updateReport(db, id, payload) {
 }
 
 app.get('/api/data', async (_, res) => {
-  res.json(await readDb())
+  await runDbRead(res, (db) => db)
 })
 
 app.post('/api/schools', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = upsertSchool(db, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => upsertSchool(db, req.body))
 })
 
 app.put('/api/schools/:id', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = updateSchool(db, req.params.id, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => updateSchool(db, req.params.id, req.body))
 })
 
 app.post('/api/books', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = upsertBook(db, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => upsertBook(db, req.body))
 })
 
 app.put('/api/books/:id', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = updateBook(db, req.params.id, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => updateBook(db, req.params.id, req.body))
 })
 
 app.post('/api/promoters', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = upsertPromoter(db, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => upsertPromoter(db, req.body))
 })
 
 app.put('/api/promoters/:id', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = updatePromoter(db, req.params.id, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => updatePromoter(db, req.params.id, req.body))
 })
 
 app.post('/api/reports', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = createReport(db, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => createReport(db, req.body))
 })
 
 app.put('/api/reports/:id', async (req, res) => {
-  try {
-    const db = await readDb()
-    const result = updateReport(db, req.params.id, req.body)
-    await writeDb(db)
-    res.json(result)
-  } catch (error) {
-    sendError(res, error.message)
-  }
+  await runDbMutation(res, (db) => updateReport(db, req.params.id, req.body))
 })
 
 app.post('/api/import/:kind', async (req, res) => {
-  try {
-    const db = await readDb()
+  await runDbMutation(res, (db) => {
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : []
     let count = 0
 
@@ -424,16 +364,12 @@ app.post('/api/import/:kind', async (req, res) => {
       }
     }
 
-    await writeDb(db)
-    res.json({ count })
-  } catch (error) {
-    sendError(res, error.message)
-  }
+    return { count }
+  })
 })
 
 app.post('/api/batch-delete/:kind', async (req, res) => {
-  try {
-    const db = await readDb()
+  await runDbMutation(res, (db) => {
     const kind = req.params.kind
     const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(normalizeText).filter(Boolean) : []
     if (!ids.length) {
@@ -442,39 +378,36 @@ app.post('/api/batch-delete/:kind', async (req, res) => {
 
     getRowsByKind(db, kind)
     deleteByKind(db, kind, ids)
-    await writeDb(db)
-    res.json({ ok: true, count: ids.length })
-  } catch (error) {
-    sendError(res, error.message)
-  }
+    return { ok: true, count: ids.length }
+  })
 })
 
 app.delete('/api/schools/:id', async (req, res) => {
-  const db = await readDb()
-  deleteByKind(db, 'schools', [req.params.id])
-  await writeDb(db)
-  res.json({ ok: true })
+  await runDbMutation(res, (db) => {
+    deleteByKind(db, 'schools', [req.params.id])
+    return { ok: true }
+  })
 })
 
 app.delete('/api/books/:id', async (req, res) => {
-  const db = await readDb()
-  deleteByKind(db, 'books', [req.params.id])
-  await writeDb(db)
-  res.json({ ok: true })
+  await runDbMutation(res, (db) => {
+    deleteByKind(db, 'books', [req.params.id])
+    return { ok: true }
+  })
 })
 
 app.delete('/api/promoters/:id', async (req, res) => {
-  const db = await readDb()
-  deleteByKind(db, 'promoters', [req.params.id])
-  await writeDb(db)
-  res.json({ ok: true })
+  await runDbMutation(res, (db) => {
+    deleteByKind(db, 'promoters', [req.params.id])
+    return { ok: true }
+  })
 })
 
 app.delete('/api/reports/:id', async (req, res) => {
-  const db = await readDb()
-  deleteByKind(db, 'reports', [req.params.id])
-  await writeDb(db)
-  res.json({ ok: true })
+  await runDbMutation(res, (db) => {
+    deleteByKind(db, 'reports', [req.params.id])
+    return { ok: true }
+  })
 })
 
 app.use(express.static(path.resolve(__dirname, '../dist')))
