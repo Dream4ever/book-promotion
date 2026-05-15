@@ -4,7 +4,9 @@ import MultiSearchSelect from './components/MultiSearchSelect.vue'
 import ModalPanel from './components/ModalPanel.vue'
 import PaginationBar from './components/PaginationBar.vue'
 import SearchSelect from './components/SearchSelect.vue'
+import { usePagedLists } from './composables/usePagedLists'
 import { useRegistryStore } from './composables/useRegistryStore'
+import { useRowSelection } from './composables/useRowSelection'
 import { PROVINCES } from './constants/provinces'
 import { api } from './utils/api'
 import { downloadExcel } from './utils/exporters'
@@ -70,13 +72,6 @@ const search = reactive({
   books: '',
   promoters: '',
   reports: '',
-})
-
-const pages = reactive({
-  schools: 1,
-  books: 1,
-  promoters: 1,
-  reports: 1,
 })
 
 const modal = reactive({
@@ -145,12 +140,15 @@ const editing = reactive({
   reportId: '',
 })
 
-const selectedIds = reactive({
-  schools: [],
-  books: [],
-  promoters: [],
-  reports: [],
-})
+const {
+  selectedIds,
+  clearSelections,
+  clearAllSelections,
+  isSelected,
+  toggleRowSelection,
+  areAllSelected,
+  toggleAllSelection,
+} = useRowSelection(['schools', 'books', 'promoters', 'reports'])
 
 const importPreview = reactive({
   visible: false,
@@ -252,10 +250,21 @@ const reportFiltered = computed(() => {
   )
 })
 
-const schoolPageRows = computed(() => paginate(schoolFiltered.value, pages.schools))
-const bookPageRows = computed(() => paginate(bookFiltered.value, pages.books))
-const promoterPageRows = computed(() => paginate(promoterFiltered.value, pages.promoters))
-const reportPageRows = computed(() => paginate(reportFiltered.value, pages.reports))
+const { pages, pageRows } = usePagedLists(
+  {
+    schools: schoolFiltered,
+    books: bookFiltered,
+    promoters: promoterFiltered,
+    reports: reportFiltered,
+  },
+  search,
+  PAGE_SIZE,
+)
+
+const schoolPageRows = pageRows.schools
+const bookPageRows = pageRows.books
+const promoterPageRows = pageRows.promoters
+const reportPageRows = pageRows.reports
 
 const conflictRecord = computed(() =>
   store.state.reports.find((item) => isReportConflict(item)),
@@ -283,50 +292,6 @@ const bookStats = computed(() =>
   summarizeRows(analyticsReportRows.value, (item) => item.bookLabel || '未知书目', '书目'),
 )
 
-watch(
-  () => schoolFiltered.value.length,
-  (length) => syncPage('schools', length),
-  { immediate: true },
-)
-watch(
-  () => bookFiltered.value.length,
-  (length) => syncPage('books', length),
-  { immediate: true },
-)
-watch(
-  () => promoterFiltered.value.length,
-  (length) => syncPage('promoters', length),
-  { immediate: true },
-)
-watch(
-  () => reportFiltered.value.length,
-  (length) => syncPage('reports', length),
-  { immediate: true },
-)
-watch(
-  () => search.schools,
-  () => {
-    pages.schools = 1
-  },
-)
-watch(
-  () => search.books,
-  () => {
-    pages.books = 1
-  },
-)
-watch(
-  () => search.promoters,
-  () => {
-    pages.promoters = 1
-  },
-)
-watch(
-  () => search.reports,
-  () => {
-    pages.reports = 1
-  },
-)
 watch(
   () => reportForm.term,
   (value) => {
@@ -362,18 +327,6 @@ watch(
   },
 )
 
-function paginate(rows, page) {
-  const start = (page - 1) * PAGE_SIZE
-  return rows.slice(start, start + PAGE_SIZE)
-}
-
-function syncPage(kind, length) {
-  const totalPages = Math.max(1, Math.ceil(length / PAGE_SIZE))
-  if (pages[kind] > totalPages) {
-    pages[kind] = totalPages
-  }
-}
-
 function summarizeRows(rows, labelGetter, labelName) {
   const map = new Map()
   rows.forEach((item) => {
@@ -388,35 +341,6 @@ function summarizeRows(rows, labelGetter, labelName) {
 function setMessage(text, type = 'success') {
   message.text = text
   message.type = type
-}
-
-function clearSelections(kind) {
-  selectedIds[kind] = []
-}
-
-function clearAllSelections() {
-  clearSelections('schools')
-  clearSelections('books')
-  clearSelections('promoters')
-  clearSelections('reports')
-}
-
-function isSelected(kind, id) {
-  return selectedIds[kind].includes(id)
-}
-
-function toggleRowSelection(kind, id, checked) {
-  selectedIds[kind] = checked
-    ? Array.from(new Set([...selectedIds[kind], id]))
-    : selectedIds[kind].filter((item) => item !== id)
-}
-
-function areAllSelected(kind, rows) {
-  return rows.length > 0 && rows.every((row) => selectedIds[kind].includes(row.id))
-}
-
-function toggleAllSelection(kind, rows, checked) {
-  selectedIds[kind] = checked ? rows.map((row) => row.id) : []
 }
 
 function resetSchoolForm() {
