@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import * as XLSX from 'xlsx'
 import MultiSearchSelect from './components/MultiSearchSelect.vue'
 import ModalPanel from './components/ModalPanel.vue'
 import PaginationBar from './components/PaginationBar.vue'
@@ -751,6 +750,7 @@ async function handleImport(kind, event) {
   if (!file) return
 
   try {
+    const XLSX = await import('xlsx')
     const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
@@ -987,14 +987,14 @@ function mapRowsForExport(kind, rows) {
   return []
 }
 
-function exportRows(kind, selectedOnly = false) {
+async function exportRows(kind, selectedOnly = false) {
   const rows = selectedOnly ? getSelectedRowsByKind(kind) : getFilteredRowsByKind(kind)
   if (!rows.length) {
     setMessage(`没有可导出的${selectedOnly ? '已选' : '筛选'}${kindLabels[kind]}数据。`, 'error')
     return
   }
 
-  downloadExcel(
+  await downloadExcel(
     `${kindLabels[kind]}_${selectedOnly ? '已选' : '筛选结果'}_${Date.now()}.xlsx`,
     mapRowsForExport(kind, rows),
     kindLabels[kind],
@@ -1002,12 +1002,12 @@ function exportRows(kind, selectedOnly = false) {
   setMessage(`已导出 ${rows.length} 条${kindLabels[kind]}数据。`)
 }
 
-function exportAnalytics() {
+async function exportAnalytics() {
   if (!analyticsReportRows.value.length) {
     setMessage('当前统计筛选下没有可导出的报备明细。', 'error')
     return
   }
-  downloadExcel(
+  await downloadExcel(
     `统计报表_${Date.now()}.xlsx`,
     analyticsReportRows.value.map((item) => ({
       报备学期: item.term,
@@ -1024,13 +1024,13 @@ function exportAnalytics() {
   setMessage(`已导出 ${analyticsReportRows.value.length} 条统计报表明细。`)
 }
 
-function exportAnalyticsDetail() {
+async function exportAnalyticsDetail() {
   if (!analyticsDetail.rows.length) {
     setMessage('当前没有可导出的统计明细。', 'error')
     return
   }
 
-  downloadExcel(
+  await downloadExcel(
     `统计明细_${Date.now()}.xlsx`,
     mapRowsForExport('reports', analyticsDetail.rows),
     '统计明细',
