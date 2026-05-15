@@ -77,6 +77,7 @@ const modal = reactive({
   book: false,
   promoter: false,
   report: false,
+  reportError: false,
   analyticsDetail: false,
 })
 
@@ -115,6 +116,11 @@ const reportForm = reactive({
 const analyticsDetail = reactive({
   title: '',
   rows: [],
+})
+
+const reportError = reactive({
+  title: '',
+  text: '',
 })
 
 const editing = reactive({
@@ -420,7 +426,21 @@ function closePromoterModal() {
 
 function closeReportModal() {
   modal.report = false
+  closeReportError()
   resetReportForm()
+}
+
+function showReportError(text, title = '报备失败') {
+  message.text = ''
+  reportError.title = title
+  reportError.text = text || '报备提交失败，请稍后重试。'
+  modal.reportError = true
+}
+
+function closeReportError() {
+  modal.reportError = false
+  reportError.title = ''
+  reportError.text = ''
 }
 
 function openSchoolModal(school = null) {
@@ -470,6 +490,7 @@ function openPromoterModal(promoter = null) {
 }
 
 function openReportModal(report = null) {
+  closeReportError()
   if (report) {
     reportForm.schoolId = report.schoolId
     reportForm.bookMode = resolveReportBookMode(report)
@@ -619,15 +640,25 @@ function submitPromoter() {
   )
 }
 
-function submitReport() {
+async function submitReport() {
   const isEditing = Boolean(editing.reportId)
   reportForm.term = normalizeTermText(reportForm.term)
   const payload = buildReportPayload()
-  runAction(
-    () => (isEditing ? api.updateReport(editing.reportId, payload) : api.createReport(payload)),
-    isEditing ? '报备记录已修改，并同步写入 JSON 文件。' : '报备成功，记录已写入项目目录 JSON 文件。',
-    closeReportModal,
-  )
+  busy.value = true
+  closeReportError()
+  try {
+    await (isEditing ? api.updateReport(editing.reportId, payload) : api.createReport(payload))
+    await store.refresh()
+    clearAllSelections()
+    closeReportModal()
+    setMessage(
+      isEditing ? '报备记录已修改，并同步写入 JSON 文件。' : '报备成功，记录已写入项目目录 JSON 文件。',
+    )
+  } catch (error) {
+    showReportError(error.message, isEditing ? '修改报备失败' : '新增报备失败')
+  } finally {
+    busy.value = false
+  }
 }
 
 async function handleImport(kind, event) {
@@ -1578,6 +1609,13 @@ onMounted(async () => {
       <template #footer>
         <button type="button" class="secondary-button" :disabled="busy" @click="closeReportModal">取消</button>
         <button type="button" class="primary-button" :disabled="busy" @click="submitReport">{{ editing.reportId ? '保存修改' : '确认新增' }}</button>
+      </template>
+    </ModalPanel>
+
+    <ModalPanel :visible="modal.reportError" :title="reportError.title" max-width-class="max-w-md" @close="closeReportError">
+      <p class="text-sm leading-6 text-red-700">{{ reportError.text }}</p>
+      <template #footer>
+        <button type="button" class="primary-button" @click="closeReportError">知道了</button>
       </template>
     </ModalPanel>
 
