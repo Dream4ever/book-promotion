@@ -3,6 +3,7 @@ import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { createId, normalizeTerritories, normalizeText, readDb, writeDb } from './db.js'
+import { hasReportConflict, normalizeReportPayload } from '../shared/reportRules.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -229,34 +230,6 @@ function updatePromoter(db, id, payload) {
   return db.promoters[index]
 }
 
-function normalizeReportPayload(payload) {
-  const bookMode = ['single', 'all', 'exclude'].includes(payload.bookMode)
-    ? payload.bookMode
-    : 'single'
-  const normalized = {
-    schoolId: normalizeText(payload.schoolId),
-    bookMode,
-    bookId: bookMode === 'single' ? normalizeText(payload.bookId) : '',
-    bookIds:
-      bookMode === 'exclude' && Array.isArray(payload.bookIds)
-        ? Array.from(new Set(payload.bookIds.map(normalizeText).filter(Boolean)))
-        : [],
-    promoterId: normalizeText(payload.promoterId),
-    term: normalizeText(payload.term),
-    note: normalizeText(payload.note),
-  }
-
-  if (normalized.bookMode === 'all' && !normalized.note) {
-    normalized.note = '推广所有图书'
-  }
-
-  if (normalized.bookMode === 'exclude' && !normalized.note) {
-    normalized.note = '只有所选图书不推广'
-  }
-
-  return normalized
-}
-
 function ensureReportRefs(db, payload) {
   const school = db.schools.find((item) => item.id === payload.schoolId)
   const promoter = db.promoters.find((item) => item.id === payload.promoterId)
@@ -279,18 +252,6 @@ function ensureReportRefs(db, payload) {
       throw new Error('报备对象不存在，请刷新后重试。')
     }
   }
-}
-
-function hasReportConflict(report, normalized, currentId = '') {
-  const reportBookMode = report.bookMode || 'single'
-  if (report.id === currentId) return false
-  if (report.schoolId !== normalized.schoolId || report.term !== normalized.term) return false
-
-  if (normalized.bookMode === 'single') {
-    return reportBookMode === 'single' && report.bookId === normalized.bookId
-  }
-
-  return reportBookMode === normalized.bookMode
 }
 
 function validateReportPayload(normalized) {

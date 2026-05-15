@@ -10,6 +10,14 @@ import { PROVINCES } from './constants/provinces'
 import { api } from './utils/api'
 import { downloadExcel } from './utils/exporters'
 import { mapBookRows, mapPromoterRows, mapSchoolRows } from './utils/importers'
+import {
+  hasReportConflict,
+  normalizeReportPayload,
+  normalizeTermText,
+  reportMatchesBook,
+  resolveReportBookMode,
+  resolveReportTerm,
+} from '../shared/reportRules.js'
 
 const PAGE_SIZE = 20
 const CURRENT_YEAR = new Date().getFullYear()
@@ -834,23 +842,6 @@ function getAgencyRecords(promoter) {
   ]
 }
 
-function normalizeTermText(value) {
-  return String(value ?? '').trim()
-}
-
-function resolveReportTerm(report) {
-  if (normalizeTermText(report?.term)) return normalizeTermText(report.term)
-  const date = report?.createdAt ? new Date(report.createdAt) : new Date()
-  const isInvalid = Number.isNaN(date.getTime())
-  const year = isInvalid ? CURRENT_YEAR : date.getFullYear()
-  const month = isInvalid ? new Date().getMonth() + 1 : date.getMonth() + 1
-  return `${year}年${month >= 8 ? '秋' : '春'}`
-}
-
-function resolveReportBookMode(report) {
-  return ['single', 'all', 'exclude'].includes(report?.bookMode) ? report.bookMode : 'single'
-}
-
 function resolveReportExcludedBooks(report) {
   const ids = Array.isArray(report?.bookIds) ? report.bookIds : []
   return ids
@@ -879,36 +870,20 @@ function formatReportBookSearchText(bookMode, book, excludedBooks) {
   return book ? `${book.title} ${book.isbn}` : '书目已删除'
 }
 
-function reportMatchesBook(report, bookId) {
-  if (report.bookMode === 'all') return true
-  if (report.bookMode === 'exclude') return !(report.bookIds || []).includes(bookId)
-  return report.bookId === bookId
-}
-
 function isReportConflict(report) {
-  const bookMode = resolveReportBookMode(report)
-  if (report.id === editing.reportId) return false
-  if (report.schoolId !== reportForm.schoolId) return false
-  if (resolveReportTerm(report) !== normalizeTermText(reportForm.term)) return false
-
-  if (reportForm.bookMode === 'single') {
-    return bookMode === 'single' && report.bookId === reportForm.bookId
-  }
-
-  return bookMode === reportForm.bookMode
+  return hasReportConflict(report, buildReportPayload(), editing.reportId)
 }
 
 function buildReportPayload() {
-  const bookMode = reportForm.bookMode
-  return {
+  return normalizeReportPayload({
     schoolId: reportForm.schoolId,
-    bookMode,
-    bookId: bookMode === 'single' ? reportForm.bookId : '',
-    bookIds: bookMode === 'exclude' ? [...reportForm.bookIds] : [],
+    bookMode: reportForm.bookMode,
+    bookId: reportForm.bookId,
+    bookIds: reportForm.bookIds,
     promoterId: reportForm.promoterId,
-    term: normalizeTermText(reportForm.term),
-    note: normalizeTermText(reportForm.note),
-  }
+    term: reportForm.term,
+    note: reportForm.note,
+  })
 }
 
 function formatAgencyRecordsText(records) {
