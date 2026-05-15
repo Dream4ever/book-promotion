@@ -1,0 +1,109 @@
+# 重构 TODO
+
+## P0: 拆分 `src/App.vue` 的页面结构
+
+`src/App.vue` 仍然超过 1500 行，下一步应优先把五个 tab 拆成独立组件或 view，降低模板和状态的耦合。
+
+- 拆出 `SchoolsTab.vue`
+- 拆出 `BooksTab.vue`
+- 拆出 `PromotersTab.vue`
+- 拆出 `ReportsTab.vue`
+- 拆出 `AnalyticsTab.vue`
+- 保留 `App.vue` 作为页面骨架、全局消息、顶层数据装配入口
+- 每拆出一个 tab 后执行 `npm run build`
+
+验收点:
+
+- `App.vue` 不再直接包含各业务表格的大段模板
+- 各 tab 的 props/emits 边界清晰
+- 现有搜索、分页、选择、导入、导出、删除行为不变
+
+## P0: 抽取表单弹窗逻辑
+
+学校、书目、推广商、报备表单状态和弹窗控制仍集中在 `App.vue`。
+
+- 抽出 `SchoolModal.vue`
+- 抽出 `BookModal.vue`
+- 抽出 `PromoterModal.vue`
+- 抽出 `ReportModal.vue`
+- 将表单 reset、open、close、submit 逻辑移动到对应组件或 composable
+- 报备表单校验继续复用 `shared/reportRules.js`
+
+验收点:
+
+- `App.vue` 不再维护所有表单字段的 reactive 对象
+- 弹窗组件只通过 props 接收初始数据，通过 emits 通知保存/关闭
+- 新增和编辑流程行为不变
+
+## P1: 继续拆分后端 service 层
+
+`server/index.js` 已集中数据库路由流程，但业务函数仍在路由文件中。
+
+- 新增 `server/services/schoolService.js`
+- 新增 `server/services/bookService.js`
+- 新增 `server/services/promoterService.js`
+- 新增 `server/services/reportService.js`
+- 新增 `server/services/deleteService.js`
+- 路由层只负责读取请求参数、调用 service、返回响应
+
+验收点:
+
+- `server/index.js` 只保留 Express 初始化、路由声明、静态资源服务
+- 业务校验和数据变更逻辑都在 service 文件中
+- `node --check server/index.js` 和 `npm run build` 通过
+
+## P1: 改善 JSON 数据写入可靠性
+
+当前 `readDb -> mutate -> writeDb` 仍没有并发写保护，`readDb()` 还会在普通读取时自动写回规范化数据。
+
+- 增加写入队列，保证同一进程内写操作串行执行
+- 将数据迁移/规范化从普通 `readDb()` 路径中拆出
+- JSON 解析失败时不要静默返回空库，应保留坏文件并返回明确错误
+- 写入时使用临时文件 + rename，降低写坏文件风险
+
+验收点:
+
+- 并发请求不会互相覆盖 `data/db.json`
+- 坏 JSON 不会被静默当作空数据库使用
+- 迁移逻辑可单独触发和测试
+
+## P1: 补充业务函数测试
+
+项目目前没有测试脚本，重构继续深入前应先覆盖高风险纯函数。
+
+- 引入 Vitest
+- 测试 `shared/reportRules.js`
+- 测试 `src/utils/importers.js`
+- 测试后端删除级联逻辑
+- 测试 report service 的新增、修改、冲突判断
+
+验收点:
+
+- `npm test` 可运行
+- 报备冲突、书目模式、导入字段映射、级联删除都有覆盖
+
+## P2: 统一前端 API 调用错误处理
+
+当前页面层仍需要手动处理较多成功/失败消息。
+
+- 给 `src/utils/api.js` 增加更清晰的错误对象结构
+- 将常见 `busy/message/refresh` 流程抽成 action runner composable
+- 区分普通 toast 式错误和报备弹窗错误
+
+验收点:
+
+- 页面组件中的 try/catch 数量减少
+- 用户可见错误信息保持不变或更明确
+
+## P2: 清理 UI 基础组件职责
+
+`SearchSelect` 和 `MultiSearchSelect` 已有重复搜索逻辑，可进一步抽取。
+
+- 抽出通用 option filtering helper
+- 统一 empty/loading/invalid 状态
+- 检查键盘可访问性和焦点管理
+
+验收点:
+
+- 单选和多选组件搜索行为一致
+- 弹层关闭、清空、选择行为稳定
