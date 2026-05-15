@@ -18,6 +18,10 @@ const props = defineProps({
     type: String,
     default: '没有找到可选项',
   },
+  invalid: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -83,7 +87,9 @@ onBeforeUnmount(() => {
         v-model="query"
         type="text"
         class="field-input pr-20"
+        :class="{ 'field-input-error': invalid }"
         :placeholder="placeholder"
+        :aria-invalid="invalid ? 'true' : 'false'"
         @focus="dropdownOpen = true"
       />
       <div class="absolute inset-y-0 right-3 flex items-center gap-2">

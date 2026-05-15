@@ -18,6 +18,10 @@ const props = defineProps({
     type: String,
     default: '没有找到可选项',
   },
+  invalid: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -64,10 +68,15 @@ function removeOption(id) {
       v-model="query"
       type="text"
       class="field-input"
+      :class="{ 'field-input-error': invalid }"
       :placeholder="placeholder"
+      :aria-invalid="invalid ? 'true' : 'false'"
     />
 
-    <div class="max-h-64 overflow-auto rounded-2xl border border-sand-200 bg-white p-2">
+    <div
+      class="max-h-64 overflow-auto rounded-2xl border border-sand-200 bg-white p-2"
+      :class="{ 'border-red-300 bg-red-50/30': invalid }"
+    >
       <button
         v-for="option in filteredOptions"
         :key="option.id"

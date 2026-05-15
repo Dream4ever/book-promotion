@@ -113,6 +113,14 @@ const reportForm = reactive({
   note: '',
 })
 
+const reportValidationErrors = reactive({
+  term: '',
+  schoolId: '',
+  bookId: '',
+  bookIds: '',
+  promoterId: '',
+})
+
 const analyticsDetail = reactive({
   title: '',
   rows: [],
@@ -312,6 +320,40 @@ watch(
     pages.reports = 1
   },
 )
+watch(
+  () => reportForm.term,
+  (value) => {
+    if (normalizeTermText(value)) reportValidationErrors.term = ''
+  },
+)
+watch(
+  () => reportForm.schoolId,
+  (value) => {
+    if (value) reportValidationErrors.schoolId = ''
+  },
+)
+watch(
+  () => [reportForm.bookMode, reportForm.bookId, reportForm.bookIds.length],
+  () => {
+    if (reportForm.bookMode === 'all') {
+      reportValidationErrors.bookId = ''
+      reportValidationErrors.bookIds = ''
+      return
+    }
+    if (reportForm.bookMode === 'single' && reportForm.bookId) {
+      reportValidationErrors.bookId = ''
+    }
+    if (reportForm.bookMode === 'exclude' && reportForm.bookIds.length) {
+      reportValidationErrors.bookIds = ''
+    }
+  },
+)
+watch(
+  () => reportForm.promoterId,
+  (value) => {
+    if (value) reportValidationErrors.promoterId = ''
+  },
+)
 
 function paginate(rows, page) {
   const start = (page - 1) * PAGE_SIZE
@@ -407,6 +449,35 @@ function resetReportForm() {
   reportForm.term = ''
   reportForm.note = ''
   editing.reportId = ''
+  clearReportValidationErrors()
+}
+
+function clearReportValidationErrors() {
+  Object.keys(reportValidationErrors).forEach((key) => {
+    reportValidationErrors[key] = ''
+  })
+}
+
+function validateReportForm() {
+  clearReportValidationErrors()
+
+  if (!normalizeTermText(reportForm.term)) {
+    reportValidationErrors.term = '请填写报备学期。'
+  }
+  if (!reportForm.schoolId) {
+    reportValidationErrors.schoolId = '请选择学校。'
+  }
+  if (reportForm.bookMode === 'single' && !reportForm.bookId) {
+    reportValidationErrors.bookId = '请选择要推广的书目。'
+  }
+  if (reportForm.bookMode === 'exclude' && !reportForm.bookIds.length) {
+    reportValidationErrors.bookIds = '请选择需要排除的书目。'
+  }
+  if (!reportForm.promoterId) {
+    reportValidationErrors.promoterId = '请选择推广商。'
+  }
+
+  return !Object.values(reportValidationErrors).some(Boolean)
 }
 
 function closeSchoolModal() {
@@ -491,6 +562,7 @@ function openPromoterModal(promoter = null) {
 
 function openReportModal(report = null) {
   closeReportError()
+  clearReportValidationErrors()
   if (report) {
     reportForm.schoolId = report.schoolId
     reportForm.bookMode = resolveReportBookMode(report)
@@ -643,6 +715,11 @@ function submitPromoter() {
 async function submitReport() {
   const isEditing = Boolean(editing.reportId)
   reportForm.term = normalizeTermText(reportForm.term)
+  if (!validateReportForm()) {
+    message.text = ''
+    closeReportError()
+    return
+  }
   const payload = buildReportPayload()
   busy.value = true
   closeReportError()
@@ -1538,21 +1615,34 @@ onMounted(async () => {
           <input
             v-model="reportForm.term"
             class="field-input"
+            :class="{ 'field-input-error': reportValidationErrors.term }"
             type="text"
             list="report-term-options"
             placeholder="例如：2026年春 或 2026年秋"
+            :aria-invalid="reportValidationErrors.term ? 'true' : 'false'"
           />
           <datalist id="report-term-options">
             <option v-for="term in termOptions" :key="term" :value="term" />
           </datalist>
+          <p v-if="reportValidationErrors.term" class="field-error-text">{{ reportValidationErrors.term }}</p>
         </div>
         <div>
           <label class="label-text">学校</label>
-          <SearchSelect v-model="reportForm.schoolId" :options="schoolOptions" placeholder="输入省份或学校名称" empty-text="未匹配到学校" />
+          <SearchSelect
+            v-model="reportForm.schoolId"
+            :options="schoolOptions"
+            placeholder="输入省份或学校名称"
+            empty-text="未匹配到学校"
+            :invalid="Boolean(reportValidationErrors.schoolId)"
+          />
+          <p v-if="reportValidationErrors.schoolId" class="field-error-text">{{ reportValidationErrors.schoolId }}</p>
         </div>
         <div>
           <label class="label-text">书目</label>
-          <div class="grid gap-3 rounded-2xl border border-sand-200 bg-sand-50 p-4">
+          <div
+            class="grid gap-3 rounded-2xl border border-sand-200 bg-sand-50 p-4"
+            :class="{ 'border-red-300 bg-red-50/40': reportValidationErrors.bookId || reportValidationErrors.bookIds }"
+          >
             <label class="flex items-start gap-3 rounded-xl bg-white px-3 py-3 text-sm text-sand-800">
               <input v-model="reportForm.bookMode" class="mt-1" type="radio" value="single" />
               <span>
@@ -1566,7 +1656,9 @@ onMounted(async () => {
               :options="bookOptions"
               placeholder="输入 ISBN 或书名"
               empty-text="未匹配到书目"
+              :invalid="Boolean(reportValidationErrors.bookId)"
             />
+            <p v-if="reportValidationErrors.bookId" class="field-error-text">{{ reportValidationErrors.bookId }}</p>
 
             <label class="flex items-start gap-3 rounded-xl bg-white px-3 py-3 text-sm text-sand-800">
               <input v-model="reportForm.bookMode" class="mt-1" type="radio" value="all" />
@@ -1589,12 +1681,21 @@ onMounted(async () => {
               :options="bookOptions"
               placeholder="搜索要排除的 ISBN 或书名"
               empty-text="未匹配到书目"
+              :invalid="Boolean(reportValidationErrors.bookIds)"
             />
+            <p v-if="reportValidationErrors.bookIds" class="field-error-text">{{ reportValidationErrors.bookIds }}</p>
           </div>
         </div>
         <div>
           <label class="label-text">推广商</label>
-          <SearchSelect v-model="reportForm.promoterId" :options="promoterOptions" placeholder="输入推广商、联系人或电话" empty-text="未匹配到推广商" />
+          <SearchSelect
+            v-model="reportForm.promoterId"
+            :options="promoterOptions"
+            placeholder="输入推广商、联系人或电话"
+            empty-text="未匹配到推广商"
+            :invalid="Boolean(reportValidationErrors.promoterId)"
+          />
+          <p v-if="reportValidationErrors.promoterId" class="field-error-text">{{ reportValidationErrors.promoterId }}</p>
         </div>
         <div>
           <label class="label-text">备注</label>
