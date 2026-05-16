@@ -1086,17 +1086,5 @@
       "agencyRecords": []
     }
   ],
-  "reports": [
-    {
-      "id": "report_1778853821424_d87661",
-      "schoolId": "school_1775832205007_kq8vc5",
-      "bookMode": "all",
-      "bookId": "",
-      "bookIds": [],
-      "promoterId": "promoter_1775832343461_m7xc6o",
-      "term": "2026年秋",
-      "note": "推广所有图书",
-      "createdAt": "2026-05-15T14:03:41.424Z"
-    }
-  ]
+  "reports": []
 }

@@ -33,6 +33,24 @@ const tabs = [
   { key: 'analytics', label: '统计报表' },
 ]
 
+const reportBookModeTabs = [
+  {
+    key: 'single',
+    label: '选择任意一本书',
+    description: '只记录所选图书 ID，冲突规则沿用单本书报备。',
+  },
+  {
+    key: 'all',
+    label: '选择所有书',
+    description: '不记录具体书目，备注默认为“推广所有图书”。',
+  },
+  {
+    key: 'exclude',
+    label: '只排除某些书',
+    description: '记录被排除的图书 ID，备注默认为“只有所选图书不推广”。',
+  },
+]
+
 const kindLabels = {
   schools: '学校',
   books: '书目',
@@ -1403,50 +1421,51 @@ onMounted(async () => {
         <div>
           <label class="label-text">书目</label>
           <div
-            class="grid gap-3 rounded-2xl border border-sand-200 bg-sand-50 p-4"
+            class="grid gap-4 rounded-2xl border border-sand-200 bg-sand-50 p-4"
             :class="{ 'border-red-300 bg-red-50/40': reportValidationErrors.bookId || reportValidationErrors.bookIds }"
           >
-            <label class="flex items-start gap-3 rounded-xl bg-white px-3 py-3 text-sm text-sand-800">
-              <input v-model="reportForm.bookMode" class="mt-1" type="radio" value="single" />
-              <span>
-                <span class="block font-medium text-sand-900">选择任意一本书</span>
-                <span class="mt-1 block text-xs text-sand-500">只记录所选图书 ID，冲突规则沿用单本书报备。</span>
-              </span>
-            </label>
-            <SearchSelect
-              v-if="reportForm.bookMode === 'single'"
-              v-model="reportForm.bookId"
-              :options="bookOptions"
-              placeholder="输入 ISBN 或书名"
-              empty-text="未匹配到书目"
-              :invalid="Boolean(reportValidationErrors.bookId)"
-            />
-            <p v-if="reportValidationErrors.bookId" class="field-error-text">{{ reportValidationErrors.bookId }}</p>
+            <div class="flex flex-col gap-2 sm:flex-row" role="tablist" aria-label="书目选择方式">
+              <button
+                v-for="mode in reportBookModeTabs"
+                :key="mode.key"
+                type="button"
+                class="flex-1 rounded-xl border px-3 py-3 text-left text-sm font-medium transition"
+                :class="reportForm.bookMode === mode.key
+                  ? 'border-pine-600 bg-pine-600 text-white shadow-sm'
+                  : 'border-sand-200 bg-white text-sand-700 hover:border-sand-300 hover:bg-sand-100'"
+                role="tab"
+                :aria-selected="reportForm.bookMode === mode.key"
+                @click="reportForm.bookMode = mode.key"
+              >
+                {{ mode.label }}
+              </button>
+            </div>
 
-            <label class="flex items-start gap-3 rounded-xl bg-white px-3 py-3 text-sm text-sand-800">
-              <input v-model="reportForm.bookMode" class="mt-1" type="radio" value="all" />
-              <span>
-                <span class="block font-medium text-sand-900">选择所有书</span>
-                <span class="mt-1 block text-xs text-sand-500">不记录具体书目，备注默认为“推广所有图书”。</span>
-              </span>
-            </label>
-
-            <label class="flex items-start gap-3 rounded-xl bg-white px-3 py-3 text-sm text-sand-800">
-              <input v-model="reportForm.bookMode" class="mt-1" type="radio" value="exclude" />
-              <span>
-                <span class="block font-medium text-sand-900">只排除选择的某些书</span>
-                <span class="mt-1 block text-xs text-sand-500">记录被排除的图书 ID，备注默认为“只有所选图书不推广”。</span>
-              </span>
-            </label>
-            <MultiSearchSelect
-              v-if="reportForm.bookMode === 'exclude'"
-              v-model="reportForm.bookIds"
-              :options="bookOptions"
-              placeholder="搜索要排除的 ISBN 或书名"
-              empty-text="未匹配到书目"
-              :invalid="Boolean(reportValidationErrors.bookIds)"
-            />
-            <p v-if="reportValidationErrors.bookIds" class="field-error-text">{{ reportValidationErrors.bookIds }}</p>
+            <div class="rounded-xl bg-white px-3 py-3">
+              <p class="text-xs leading-5 text-sand-500">
+                {{ reportBookModeTabs.find((mode) => mode.key === reportForm.bookMode)?.description }}
+              </p>
+              <div v-if="reportForm.bookMode === 'single'" class="mt-3">
+                <SearchSelect
+                  v-model="reportForm.bookId"
+                  :options="bookOptions"
+                  placeholder="输入 ISBN 或书名"
+                  empty-text="未匹配到书目"
+                  :invalid="Boolean(reportValidationErrors.bookId)"
+                />
+                <p v-if="reportValidationErrors.bookId" class="field-error-text">{{ reportValidationErrors.bookId }}</p>
+              </div>
+              <div v-else-if="reportForm.bookMode === 'exclude'" class="mt-3">
+                <MultiSearchSelect
+                  v-model="reportForm.bookIds"
+                  :options="bookOptions"
+                  placeholder="搜索要排除的 ISBN 或书名"
+                  empty-text="未匹配到书目"
+                  :invalid="Boolean(reportValidationErrors.bookIds)"
+                />
+                <p v-if="reportValidationErrors.bookIds" class="field-error-text">{{ reportValidationErrors.bookIds }}</p>
+              </div>
+            </div>
           </div>
         </div>
         <div>
