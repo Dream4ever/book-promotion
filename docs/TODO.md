@@ -1,22 +1,22 @@
 # 重构 TODO
 
-## P0: 拆分 `src/App.vue` 的页面结构
+## 已完成: P0 拆分 `src/App.vue` 的页面结构
 
-`src/App.vue` 仍然超过 1500 行，下一步应优先把五个 tab 拆成独立组件或 view，降低模板和状态的耦合。
+已将五个 tab 拆成独立组件，`App.vue` 保留页面骨架、全局消息、顶层数据装配和弹窗入口。
 
-- 拆出 `SchoolsTab.vue`
-- 拆出 `BooksTab.vue`
-- 拆出 `PromotersTab.vue`
-- 拆出 `ReportsTab.vue`
-- 拆出 `AnalyticsTab.vue`
-- 保留 `App.vue` 作为页面骨架、全局消息、顶层数据装配入口
-- 每拆出一个 tab 后执行 `npm run build`
+- [x] 拆出 `SchoolsTab.vue`
+- [x] 拆出 `BooksTab.vue`
+- [x] 拆出 `PromotersTab.vue`
+- [x] 拆出 `ReportsTab.vue`
+- [x] 拆出 `AnalyticsTab.vue`
+- [x] 保留 `App.vue` 作为页面骨架、全局消息、顶层数据装配入口
+- [x] 执行 `npm run build`
 
 验收点:
 
-- `App.vue` 不再直接包含各业务表格的大段模板
-- 各 tab 的 props/emits 边界清晰
-- 现有搜索、分页、选择、导入、导出、删除行为不变
+- [x] `App.vue` 不再直接包含各业务表格的大段模板
+- [x] 各 tab 的 props/emits 边界清晰
+- [x] 现有搜索、分页、选择、导入、导出、删除行为不变
 
 ## P0: 抽取表单弹窗逻辑
 

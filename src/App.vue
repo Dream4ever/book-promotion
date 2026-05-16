@@ -1,9 +1,13 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import AnalyticsTab from './components/AnalyticsTab.vue'
+import BooksTab from './components/BooksTab.vue'
 import MultiSearchSelect from './components/MultiSearchSelect.vue'
 import ModalPanel from './components/ModalPanel.vue'
-import PaginationBar from './components/PaginationBar.vue'
+import PromotersTab from './components/PromotersTab.vue'
+import ReportsTab from './components/ReportsTab.vue'
 import SearchSelect from './components/SearchSelect.vue'
+import SchoolsTab from './components/SchoolsTab.vue'
 import { useRegistryImport } from './composables/useRegistryImport'
 import { usePagedLists } from './composables/usePagedLists'
 import { useRegistryStore } from './composables/useRegistryStore'
@@ -720,6 +724,22 @@ function batchDelete(kind) {
   )
 }
 
+function deleteSchool(school) {
+  runAction(() => api.deleteSchool(school.id), '学校已删除，并同步更新 JSON 文件。')
+}
+
+function deleteBook(book) {
+  runAction(() => api.deleteBook(book.id), '书目已删除，并同步更新 JSON 文件。')
+}
+
+function deletePromoter(promoter) {
+  runAction(() => api.deletePromoter(promoter.id), '推广商已删除，并同步更新 JSON 文件。')
+}
+
+function deleteReport(report) {
+  runAction(() => api.deleteReport(report.id), '报备记录已删除，并同步更新 JSON 文件。')
+}
+
 function promoterTerritoryText(territories) {
   if (!territories?.length) return '未配置'
   return territories
@@ -874,6 +894,10 @@ function analyticsRowsBy(field, value) {
   return analyticsReportRows.value.filter((item) => item[field] === value)
 }
 
+function openAnalyticsStatDetail({ title, field, value }) {
+  openAnalyticsDetail(title, analyticsRowsBy(field, value))
+}
+
 onMounted(async () => {
   try {
     await store.refresh()
@@ -916,353 +940,111 @@ onMounted(async () => {
       {{ message.text }}
     </section>
 
-    <section v-if="activeTab === 'schools'" class="mt-6 panel p-6">
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-sand-900">学校名单</h2>
-          <p class="mt-1 text-sm text-sand-600">支持搜索、分页、批量删除、批量导出。</p>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <input v-model="search.schools" class="field-input w-64" type="text" placeholder="搜索省份 / 学校名称" />
-          <button type="button" class="primary-button" :disabled="busy" @click="openSchoolModal()">新增学校</button>
-          <label class="secondary-button cursor-pointer">
-            Excel 导入
-            <input class="hidden" type="file" accept=".xlsx,.xls,.csv" @change="handleImport('schools', $event)" />
-          </label>
-          <button type="button" class="secondary-button" @click="exportRows('schools')">导出筛选结果</button>
-          <button type="button" class="secondary-button" :disabled="!selectedIds.schools.length" @click="exportRows('schools', true)">导出已选</button>
-          <button type="button" class="danger-button" :disabled="busy || !selectedIds.schools.length" @click="batchDelete('schools')">批量删除</button>
-        </div>
-      </div>
-      <div class="mt-5 overflow-x-auto">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-sand-200 text-sand-500">
-            <tr>
-              <th class="px-3 py-3 font-medium">
-                <input type="checkbox" :checked="areAllSelected('schools', schoolPageRows)" @change="toggleAllSelection('schools', schoolPageRows, $event.target.checked)" />
-              </th>
-              <th class="px-3 py-3 font-medium">省份</th>
-              <th class="px-3 py-3 font-medium">学校名称</th>
-              <th class="px-3 py-3 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="school in schoolPageRows" :key="school.id" class="border-b border-sand-100">
-              <td class="px-3 py-3">
-                <input type="checkbox" :checked="isSelected('schools', school.id)" @change="toggleRowSelection('schools', school.id, $event.target.checked)" />
-              </td>
-              <td class="px-3 py-3">{{ school.province }}</td>
-              <td class="px-3 py-3 text-sand-900">{{ school.name }}</td>
-              <td class="px-3 py-3">
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="openSchoolModal(school)">编辑</button>
-                  <button type="button" class="danger-button" :disabled="busy" @click="runAction(() => api.deleteSchool(school.id), '学校已删除，并同步更新 JSON 文件。')">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!schoolPageRows.length">
-              <td colspan="4" class="px-3 py-8 text-center text-sand-500">暂无学校数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <PaginationBar :page="pages.schools" :total-items="schoolFiltered.length" :page-size="PAGE_SIZE" @update:page="pages.schools = $event" />
-    </section>
+    <SchoolsTab
+      v-if="activeTab === 'schools'"
+      :busy="busy"
+      :search="search"
+      :selected-ids="selectedIds"
+      :page-rows="schoolPageRows"
+      :filtered-count="schoolFiltered.length"
+      :page="pages.schools"
+      :page-size="PAGE_SIZE"
+      :is-selected="isSelected"
+      :are-all-selected="areAllSelected"
+      @update:page="pages.schools = $event"
+      @create="openSchoolModal()"
+      @edit="openSchoolModal"
+      @delete="deleteSchool"
+      @import="handleImport('schools', $event)"
+      @export="(selectedOnly) => exportRows('schools', selectedOnly)"
+      @batch-delete="batchDelete('schools')"
+      @toggle-row="({ id, checked }) => toggleRowSelection('schools', id, checked)"
+      @toggle-all="(checked) => toggleAllSelection('schools', schoolPageRows, checked)"
+    />
 
-    <section v-if="activeTab === 'books'" class="mt-6 panel p-6">
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-sand-900">书目名单</h2>
-          <p class="mt-1 text-sm text-sand-600">默认每页 20 条，支持搜索和导出。</p>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <input v-model="search.books" class="field-input w-64" type="text" placeholder="搜索 ISBN / 书名 / 定价" />
-          <button type="button" class="primary-button" :disabled="busy" @click="openBookModal()">新增书目</button>
-          <label class="secondary-button cursor-pointer">
-            Excel 导入
-            <input class="hidden" type="file" accept=".xlsx,.xls,.csv" @change="handleImport('books', $event)" />
-          </label>
-          <button type="button" class="secondary-button" @click="exportRows('books')">导出筛选结果</button>
-          <button type="button" class="secondary-button" :disabled="!selectedIds.books.length" @click="exportRows('books', true)">导出已选</button>
-          <button type="button" class="danger-button" :disabled="busy || !selectedIds.books.length" @click="batchDelete('books')">批量删除</button>
-        </div>
-      </div>
-      <div class="mt-5 overflow-x-auto">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-sand-200 text-sand-500">
-            <tr>
-              <th class="px-3 py-3 font-medium">
-                <input type="checkbox" :checked="areAllSelected('books', bookPageRows)" @change="toggleAllSelection('books', bookPageRows, $event.target.checked)" />
-              </th>
-              <th class="px-3 py-3 font-medium">ISBN</th>
-              <th class="px-3 py-3 font-medium">书名</th>
-              <th class="px-3 py-3 font-medium">定价</th>
-              <th class="px-3 py-3 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="book in bookPageRows" :key="book.id" class="border-b border-sand-100">
-              <td class="px-3 py-3">
-                <input type="checkbox" :checked="isSelected('books', book.id)" @change="toggleRowSelection('books', book.id, $event.target.checked)" />
-              </td>
-              <td class="px-3 py-3">{{ book.isbn }}</td>
-              <td class="px-3 py-3 text-sand-900">{{ book.title }}</td>
-              <td class="px-3 py-3">￥{{ Number(book.price || 0).toFixed(2) }}</td>
-              <td class="px-3 py-3">
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="openBookModal(book)">编辑</button>
-                  <button type="button" class="danger-button" :disabled="busy" @click="runAction(() => api.deleteBook(book.id), '书目已删除，并同步更新 JSON 文件。')">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!bookPageRows.length">
-              <td colspan="5" class="px-3 py-8 text-center text-sand-500">暂无书目数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <PaginationBar :page="pages.books" :total-items="bookFiltered.length" :page-size="PAGE_SIZE" @update:page="pages.books = $event" />
-    </section>
+    <BooksTab
+      v-if="activeTab === 'books'"
+      :busy="busy"
+      :search="search"
+      :selected-ids="selectedIds"
+      :page-rows="bookPageRows"
+      :filtered-count="bookFiltered.length"
+      :page="pages.books"
+      :page-size="PAGE_SIZE"
+      :is-selected="isSelected"
+      :are-all-selected="areAllSelected"
+      @update:page="pages.books = $event"
+      @create="openBookModal()"
+      @edit="openBookModal"
+      @delete="deleteBook"
+      @import="handleImport('books', $event)"
+      @export="(selectedOnly) => exportRows('books', selectedOnly)"
+      @batch-delete="batchDelete('books')"
+      @toggle-row="({ id, checked }) => toggleRowSelection('books', id, checked)"
+      @toggle-all="(checked) => toggleAllSelection('books', bookPageRows, checked)"
+    />
 
-    <section v-if="activeTab === 'promoters'" class="mt-6 panel p-6">
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-sand-900">推广商名单</h2>
-          <p class="mt-1 text-sm text-sand-600">可按名称、联系人、电话、代理省份搜索。</p>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <input v-model="search.promoters" class="field-input w-72" type="text" placeholder="搜索推广商 / 联系人 / 电话 / 省份" />
-          <button type="button" class="primary-button" :disabled="busy" @click="openPromoterModal()">新增推广商</button>
-          <label class="secondary-button cursor-pointer">
-            Excel 导入
-            <input class="hidden" type="file" accept=".xlsx,.xls,.csv" @change="handleImport('promoters', $event)" />
-          </label>
-          <button type="button" class="secondary-button" @click="exportRows('promoters')">导出筛选结果</button>
-          <button type="button" class="secondary-button" :disabled="!selectedIds.promoters.length" @click="exportRows('promoters', true)">导出已选</button>
-          <button type="button" class="danger-button" :disabled="busy || !selectedIds.promoters.length" @click="batchDelete('promoters')">批量删除</button>
-        </div>
-      </div>
-      <div class="mt-5 overflow-x-auto">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-sand-200 text-sand-500">
-            <tr>
-              <th class="px-3 py-3 font-medium">
-                <input type="checkbox" :checked="areAllSelected('promoters', promoterPageRows)" @change="toggleAllSelection('promoters', promoterPageRows, $event.target.checked)" />
-              </th>
-              <th class="px-3 py-3 font-medium">推广商</th>
-              <th class="px-3 py-3 font-medium">联系人</th>
-              <th class="px-3 py-3 font-medium">联系电话</th>
-              <th class="px-3 py-3 font-medium">最近代理年度</th>
-              <th class="px-3 py-3 font-medium">最新代理配置</th>
-              <th class="px-3 py-3 font-medium">历史记录数</th>
-              <th class="px-3 py-3 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="promoter in promoterPageRows" :key="promoter.id" class="border-b border-sand-100 align-top">
-              <td class="px-3 py-3">
-                <input type="checkbox" :checked="isSelected('promoters', promoter.id)" @change="toggleRowSelection('promoters', promoter.id, $event.target.checked)" />
-              </td>
-              <td class="px-3 py-3 font-medium text-sand-900">{{ promoter.name }}</td>
-              <td class="px-3 py-3">{{ promoter.contact || '-' }}</td>
-              <td class="px-3 py-3">{{ promoter.phone || '-' }}</td>
-              <td class="px-3 py-3">{{ latestAgencyRecord(getAgencyRecords(promoter))?.year || '-' }}</td>
-              <td class="px-3 py-3 text-xs leading-6 text-sand-700">
-                {{ latestAgencyRecord(getAgencyRecords(promoter)) ? `${promoterTerritoryText(latestAgencyRecord(getAgencyRecords(promoter)).territories)} / ${latestAgencyRecord(getAgencyRecords(promoter)).agencyPeriod || '-'} / ${latestAgencyRecord(getAgencyRecords(promoter)).workload || '-'}` : '-' }}
-              </td>
-              <td class="px-3 py-3">{{ getAgencyRecords(promoter).length }}</td>
-              <td class="px-3 py-3">
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="openPromoterModal(promoter)">编辑</button>
-                  <button type="button" class="danger-button" :disabled="busy" @click="runAction(() => api.deletePromoter(promoter.id), '推广商已删除，并同步更新 JSON 文件。')">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!promoterPageRows.length">
-              <td colspan="8" class="px-3 py-8 text-center text-sand-500">暂无推广商数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <PaginationBar :page="pages.promoters" :total-items="promoterFiltered.length" :page-size="PAGE_SIZE" @update:page="pages.promoters = $event" />
-    </section>
+    <PromotersTab
+      v-if="activeTab === 'promoters'"
+      :busy="busy"
+      :search="search"
+      :selected-ids="selectedIds"
+      :page-rows="promoterPageRows"
+      :filtered-count="promoterFiltered.length"
+      :page="pages.promoters"
+      :page-size="PAGE_SIZE"
+      :is-selected="isSelected"
+      :are-all-selected="areAllSelected"
+      :get-agency-records="getAgencyRecords"
+      :latest-agency-record="latestAgencyRecord"
+      :promoter-territory-text="promoterTerritoryText"
+      @update:page="pages.promoters = $event"
+      @create="openPromoterModal()"
+      @edit="openPromoterModal"
+      @delete="deletePromoter"
+      @import="handleImport('promoters', $event)"
+      @export="(selectedOnly) => exportRows('promoters', selectedOnly)"
+      @batch-delete="batchDelete('promoters')"
+      @toggle-row="({ id, checked }) => toggleRowSelection('promoters', id, checked)"
+      @toggle-all="(checked) => toggleAllSelection('promoters', promoterPageRows, checked)"
+    />
 
-    <section v-if="activeTab === 'reports'" class="mt-6 panel p-6">
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-sand-900">报备记录</h2>
-          <p class="mt-1 text-sm text-sand-600">报备时支持模糊查询，修改时仍校验唯一性。</p>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <input v-model="search.reports" class="field-input w-72" type="text" placeholder="搜索学期 / 省份 / 学校 / 书目 / 推广商" />
-          <button type="button" class="primary-button" :disabled="busy" @click="openReportModal()">新增报备</button>
-          <button type="button" class="secondary-button" @click="exportRows('reports')">导出筛选结果</button>
-          <button type="button" class="secondary-button" :disabled="!selectedIds.reports.length" @click="exportRows('reports', true)">导出已选</button>
-          <button type="button" class="danger-button" :disabled="busy || !selectedIds.reports.length" @click="batchDelete('reports')">批量删除</button>
-        </div>
-      </div>
-      <div class="mt-5 overflow-x-auto">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-sand-200 text-sand-500">
-            <tr>
-              <th class="px-3 py-3 font-medium">
-                <input type="checkbox" :checked="areAllSelected('reports', reportPageRows)" @change="toggleAllSelection('reports', reportPageRows, $event.target.checked)" />
-              </th>
-              <th class="px-3 py-3 font-medium">报备学期</th>
-              <th class="px-3 py-3 font-medium">省份 / 学校</th>
-              <th class="px-3 py-3 font-medium">书目</th>
-              <th class="px-3 py-3 font-medium">推广商</th>
-              <th class="px-3 py-3 font-medium">备注</th>
-              <th class="px-3 py-3 font-medium">报备时间</th>
-              <th class="px-3 py-3 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="report in reportPageRows" :key="report.id" class="border-b border-sand-100 align-top">
-              <td class="px-3 py-3">
-                <input type="checkbox" :checked="isSelected('reports', report.id)" @change="toggleRowSelection('reports', report.id, $event.target.checked)" />
-              </td>
-              <td class="px-3 py-3">{{ report.term }}</td>
-              <td class="px-3 py-3">{{ report.schoolLabel }}</td>
-              <td class="px-3 py-3">{{ report.bookLabel }}</td>
-              <td class="px-3 py-3">{{ report.promoterLabel }}</td>
-              <td class="px-3 py-3 text-sand-700">{{ report.note || '-' }}</td>
-              <td class="px-3 py-3">{{ formatTime(report.updatedAt || report.createdAt) }}</td>
-              <td class="px-3 py-3">
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="openReportModal(report)">编辑</button>
-                  <button type="button" class="danger-button" :disabled="busy" @click="runAction(() => api.deleteReport(report.id), '报备记录已删除，并同步更新 JSON 文件。')">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!reportPageRows.length">
-              <td colspan="8" class="px-3 py-8 text-center text-sand-500">暂无报备记录</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <PaginationBar :page="pages.reports" :total-items="reportFiltered.length" :page-size="PAGE_SIZE" @update:page="pages.reports = $event" />
-    </section>
+    <ReportsTab
+      v-if="activeTab === 'reports'"
+      :busy="busy"
+      :search="search"
+      :selected-ids="selectedIds"
+      :page-rows="reportPageRows"
+      :filtered-count="reportFiltered.length"
+      :page="pages.reports"
+      :page-size="PAGE_SIZE"
+      :is-selected="isSelected"
+      :are-all-selected="areAllSelected"
+      :format-time="formatTime"
+      @update:page="pages.reports = $event"
+      @create="openReportModal()"
+      @edit="openReportModal"
+      @delete="deleteReport"
+      @export="(selectedOnly) => exportRows('reports', selectedOnly)"
+      @batch-delete="batchDelete('reports')"
+      @toggle-row="({ id, checked }) => toggleRowSelection('reports', id, checked)"
+      @toggle-all="(checked) => toggleAllSelection('reports', reportPageRows, checked)"
+    />
 
-    <section v-if="activeTab === 'analytics'" class="mt-6 grid gap-6">
-      <div class="panel p-6">
-        <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h2 class="text-xl font-semibold text-sand-900">统计报表</h2>
-            <p class="mt-1 text-sm text-sand-600">按省份、推广商、书目筛选当前报备记录并统计。</p>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <select v-model="analyticsFilters.term" class="field-input w-40">
-              <option value="">全部学期</option>
-              <option v-for="term in termOptions" :key="term" :value="term">{{ term }}</option>
-            </select>
-            <select v-model="analyticsFilters.province" class="field-input w-40">
-              <option value="">全部省份</option>
-              <option v-for="province in PROVINCES" :key="province" :value="province">{{ province }}</option>
-            </select>
-            <select v-model="analyticsFilters.promoterId" class="field-input w-52">
-              <option value="">全部推广商</option>
-              <option v-for="promoter in store.state.promoters" :key="promoter.id" :value="promoter.id">{{ promoter.name }}</option>
-            </select>
-            <select v-model="analyticsFilters.bookId" class="field-input w-64">
-              <option value="">全部书目</option>
-              <option v-for="book in store.state.books" :key="book.id" :value="book.id">{{ book.title }} ({{ book.isbn }})</option>
-            </select>
-            <button type="button" class="secondary-button" @click="exportAnalytics">导出筛选明细</button>
-          </div>
-        </div>
-        <div class="mt-5 flex flex-wrap gap-3 text-sm">
-          <span class="tag">筛选后报备数：{{ analyticsReportRows.length }}</span>
-          <span class="tag">省份维度：{{ provinceStats.length }}</span>
-          <span class="tag">推广商维度：{{ promoterStats.length }}</span>
-          <span class="tag">书目维度：{{ bookStats.length }}</span>
-        </div>
-      </div>
-
-      <div class="grid gap-6 xl:grid-cols-3">
-        <div class="panel p-6">
-          <h3 class="text-lg font-semibold text-sand-900">按省份统计</h3>
-          <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-              <thead class="border-b border-sand-200 text-sand-500">
-                <tr>
-                  <th class="px-3 py-3 font-medium">省份</th>
-                  <th class="px-3 py-3 font-medium">报备数量</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in provinceStats" :key="row.省份" class="border-b border-sand-100">
-                  <td class="px-3 py-3">{{ row.省份 }}</td>
-                  <td class="px-3 py-3">
-                    <button type="button" class="text-pine-600 underline-offset-4 hover:underline" @click="openAnalyticsDetail(`${row.省份} 报备明细`, analyticsRowsBy('province', row.省份))">
-                      {{ row.报备数量 }}
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!provinceStats.length">
-                  <td colspan="2" class="px-3 py-8 text-center text-sand-500">暂无统计数据</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel p-6">
-          <h3 class="text-lg font-semibold text-sand-900">按推广商统计</h3>
-          <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-              <thead class="border-b border-sand-200 text-sand-500">
-                <tr>
-                  <th class="px-3 py-3 font-medium">推广商</th>
-                  <th class="px-3 py-3 font-medium">报备数量</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in promoterStats" :key="row.推广商" class="border-b border-sand-100">
-                  <td class="px-3 py-3">{{ row.推广商 }}</td>
-                  <td class="px-3 py-3">
-                    <button type="button" class="text-pine-600 underline-offset-4 hover:underline" @click="openAnalyticsDetail(`${row.推广商} 报备明细`, analyticsRowsBy('promoterName', row.推广商))">
-                      {{ row.报备数量 }}
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!promoterStats.length">
-                  <td colspan="2" class="px-3 py-8 text-center text-sand-500">暂无统计数据</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel p-6">
-          <h3 class="text-lg font-semibold text-sand-900">按书目统计</h3>
-          <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-              <thead class="border-b border-sand-200 text-sand-500">
-                <tr>
-                  <th class="px-3 py-3 font-medium">书目</th>
-                  <th class="px-3 py-3 font-medium">报备数量</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in bookStats" :key="row.书目" class="border-b border-sand-100">
-                  <td class="px-3 py-3">{{ row.书目 }}</td>
-                  <td class="px-3 py-3">
-                    <button type="button" class="text-pine-600 underline-offset-4 hover:underline" @click="openAnalyticsDetail(`${row.书目} 报备明细`, analyticsRowsBy('bookLabel', row.书目))">
-                      {{ row.报备数量 }}
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!bookStats.length">
-                  <td colspan="2" class="px-3 py-8 text-center text-sand-500">暂无统计数据</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
+    <AnalyticsTab
+      v-if="activeTab === 'analytics'"
+      :filters="analyticsFilters"
+      :term-options="termOptions"
+      :provinces="PROVINCES"
+      :promoters="store.state.promoters"
+      :books="store.state.books"
+      :report-rows="analyticsReportRows"
+      :province-stats="provinceStats"
+      :promoter-stats="promoterStats"
+      :book-stats="bookStats"
+      @export="exportAnalytics"
+      @open-detail="openAnalyticsStatDetail"
+    />
     <ModalPanel :visible="modal.school" :title="editing.schoolId ? '修改学校' : '新增学校'" @close="closeSchoolModal">
       <div class="grid gap-4">
         <div>
