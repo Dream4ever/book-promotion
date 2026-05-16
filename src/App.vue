@@ -17,6 +17,7 @@ import {
   normalizeTermText,
   reportMatchesBook,
   resolveReportBookMode,
+  resolveReportSpecificBookIds,
   resolveReportTerm,
 } from '../shared/reportRules.js'
 
@@ -36,8 +37,8 @@ const tabs = [
 const reportBookModeTabs = [
   {
     key: 'single',
-    label: '选择任意一本书',
-    description: '只记录所选图书 ID，冲突规则沿用单本书报备。',
+    label: '选择指定图书',
+    description: '可选择一本或多本指定图书，冲突规则按每本书分别校验。',
   },
   {
     key: 'all',
@@ -210,20 +211,25 @@ const joinedReports = computed(() =>
     const school = store.state.schools.find((item) => item.id === report.schoolId)
     const promoter = store.state.promoters.find((item) => item.id === report.promoterId)
     const bookMode = resolveReportBookMode(report)
+    const specificBooks = bookMode === 'single' ? resolveReportSpecificBooks(report) : []
     const excludedBooks = resolveReportExcludedBooks(report)
-    const book = bookMode === 'single' ? store.state.books.find((item) => item.id === report.bookId) : null
 
     return {
       ...report,
       bookMode,
-      bookIds: bookMode === 'exclude' ? (report.bookIds || []) : [],
+      bookIds:
+        bookMode === 'single'
+          ? resolveReportSpecificBookIds(report)
+          : bookMode === 'exclude'
+            ? report.bookIds || []
+            : [],
       province: school?.province || '',
       schoolName: school?.name || '学校已删除',
       schoolLabel: school ? `${school.province} / ${school.name}` : '学校已删除',
-      bookTitle: book?.title || '书目已删除',
-      isbn: book?.isbn || '',
-      bookLabel: formatReportBookLabel(bookMode, book, excludedBooks),
-      bookSearchText: formatReportBookSearchText(bookMode, book, excludedBooks),
+      bookTitle: specificBooks.map((book) => book.title).join('、') || '书目已删除',
+      isbn: specificBooks.map((book) => book.isbn).join('、'),
+      bookLabel: formatReportBookLabel(bookMode, specificBooks, excludedBooks),
+      bookSearchText: formatReportBookSearchText(bookMode, specificBooks, excludedBooks),
       term: resolveReportTerm(report),
       promoterName: promoter?.name || '推广商已删除',
       promoterLabel: promoter?.name || '推广商已删除',
@@ -329,7 +335,7 @@ watch(
       reportValidationErrors.bookIds = ''
       return
     }
-    if (reportForm.bookMode === 'single' && reportForm.bookId) {
+    if (reportForm.bookMode === 'single' && reportForm.bookIds.length) {
       reportValidationErrors.bookId = ''
     }
     if (reportForm.bookMode === 'exclude' && reportForm.bookIds.length) {
@@ -415,7 +421,7 @@ function validateReportForm() {
   if (!reportForm.schoolId) {
     reportValidationErrors.schoolId = '请选择学校。'
   }
-  if (reportForm.bookMode === 'single' && !reportForm.bookId) {
+  if (reportForm.bookMode === 'single' && !reportForm.bookIds.length) {
     reportValidationErrors.bookId = '请选择要推广的书目。'
   }
   if (reportForm.bookMode === 'exclude' && !reportForm.bookIds.length) {
@@ -460,6 +466,15 @@ function closeReportError() {
   modal.reportError = false
   reportError.title = ''
   reportError.text = ''
+}
+
+function selectReportBookMode(mode) {
+  if (reportForm.bookMode === mode) return
+  reportForm.bookMode = mode
+  reportForm.bookId = ''
+  reportForm.bookIds = []
+  reportValidationErrors.bookId = ''
+  reportValidationErrors.bookIds = ''
 }
 
 function openSchoolModal(school = null) {
@@ -514,8 +529,13 @@ function openReportModal(report = null) {
   if (report) {
     reportForm.schoolId = report.schoolId
     reportForm.bookMode = resolveReportBookMode(report)
-    reportForm.bookId = reportForm.bookMode === 'single' ? report.bookId : ''
-    reportForm.bookIds = reportForm.bookMode === 'exclude' ? [...(report.bookIds || [])] : []
+    reportForm.bookIds =
+      reportForm.bookMode === 'single'
+        ? resolveReportSpecificBookIds(report)
+        : reportForm.bookMode === 'exclude'
+          ? [...(report.bookIds || [])]
+          : []
+    reportForm.bookId = reportForm.bookMode === 'single' ? reportForm.bookIds[0] || '' : ''
     reportForm.promoterId = report.promoterId
     reportForm.term = resolveReportTerm(report)
     reportForm.note = report.note || ''
@@ -739,25 +759,35 @@ function resolveReportExcludedBooks(report) {
     .filter(Boolean)
 }
 
+function resolveReportSpecificBooks(report) {
+  return resolveReportSpecificBookIds(report)
+    .map((id) => store.state.books.find((book) => book.id === id))
+    .filter(Boolean)
+}
+
 function formatBookOption(book) {
   return book ? `${book.title} (${book.isbn})` : '书目已删除'
 }
 
-function formatReportBookLabel(bookMode, book, excludedBooks) {
+function formatReportBookLabel(bookMode, specificBooks, excludedBooks) {
   if (bookMode === 'all') return '所有图书'
   if (bookMode === 'exclude') {
     if (!excludedBooks.length) return '排除指定图书'
     return `排除 ${excludedBooks.length} 本：${excludedBooks.map(formatBookOption).join('、')}`
   }
-  return formatBookOption(book)
+  if (!specificBooks.length) return '书目已删除'
+  if (specificBooks.length === 1) return formatBookOption(specificBooks[0])
+  return `指定 ${specificBooks.length} 本：${specificBooks.map(formatBookOption).join('、')}`
 }
 
-function formatReportBookSearchText(bookMode, book, excludedBooks) {
+function formatReportBookSearchText(bookMode, specificBooks, excludedBooks) {
   if (bookMode === 'all') return '所有图书 推广所有图书'
   if (bookMode === 'exclude') {
     return `排除指定图书 只有所选图书不推广 ${excludedBooks.map(formatBookOption).join(' ')}`
   }
-  return book ? `${book.title} ${book.isbn}` : '书目已删除'
+  return specificBooks.length
+    ? `指定图书 ${specificBooks.map((book) => `${book.title} ${book.isbn}`).join(' ')}`
+    : '书目已删除'
 }
 
 function isReportConflict(report) {
@@ -768,7 +798,7 @@ function buildReportPayload() {
   return normalizeReportPayload({
     schoolId: reportForm.schoolId,
     bookMode: reportForm.bookMode,
-    bookId: reportForm.bookId,
+    bookId: reportForm.bookIds[0] || reportForm.bookId,
     bookIds: reportForm.bookIds,
     promoterId: reportForm.promoterId,
     term: reportForm.term,
@@ -1435,7 +1465,7 @@ onMounted(async () => {
                   : 'border-sand-200 bg-white text-sand-700 hover:border-sand-300 hover:bg-sand-100'"
                 role="tab"
                 :aria-selected="reportForm.bookMode === mode.key"
-                @click="reportForm.bookMode = mode.key"
+                @click="selectReportBookMode(mode.key)"
               >
                 {{ mode.label }}
               </button>
@@ -1446,8 +1476,8 @@ onMounted(async () => {
                 {{ reportBookModeTabs.find((mode) => mode.key === reportForm.bookMode)?.description }}
               </p>
               <div v-if="reportForm.bookMode === 'single'" class="mt-3">
-                <SearchSelect
-                  v-model="reportForm.bookId"
+                <MultiSearchSelect
+                  v-model="reportForm.bookIds"
                   :options="bookOptions"
                   placeholder="输入 ISBN 或书名"
                   empty-text="未匹配到书目"

@@ -16,6 +16,21 @@ export function resolveReportBookMode(report) {
   return REPORT_BOOK_MODES.includes(report?.bookMode) ? report.bookMode : 'single'
 }
 
+function normalizeBookIdList(value) {
+  return Array.isArray(value)
+    ? Array.from(new Set(value.map(normalizeText).filter(Boolean)))
+    : []
+}
+
+export function resolveReportSpecificBookIds(report) {
+  return Array.from(
+    new Set([
+      ...normalizeBookIdList(report?.bookIds),
+      normalizeText(report?.bookId),
+    ].filter(Boolean)),
+  )
+}
+
 export function inferReportTerm(createdAt, now = new Date()) {
   const date = createdAt ? new Date(createdAt) : now
   const isInvalid = Number.isNaN(date.getTime())
@@ -31,14 +46,13 @@ export function resolveReportTerm(report, now = new Date()) {
 
 export function normalizeReportPayload(payload) {
   const bookMode = resolveReportBookMode(payload)
+  const specificBookIds = bookMode === 'single' ? resolveReportSpecificBookIds(payload) : []
+  const excludedBookIds = bookMode === 'exclude' ? normalizeBookIdList(payload?.bookIds) : []
   const normalized = {
     schoolId: normalizeText(payload?.schoolId),
     bookMode,
-    bookId: bookMode === 'single' ? normalizeText(payload?.bookId) : '',
-    bookIds:
-      bookMode === 'exclude' && Array.isArray(payload?.bookIds)
-        ? Array.from(new Set(payload.bookIds.map(normalizeText).filter(Boolean)))
-        : [],
+    bookId: bookMode === 'single' ? specificBookIds[0] || '' : '',
+    bookIds: bookMode === 'single' ? specificBookIds : excludedBookIds,
     promoterId: normalizeText(payload?.promoterId),
     term: normalizeTermText(payload?.term),
     note: normalizeText(payload?.note),
@@ -62,7 +76,10 @@ export function hasReportConflict(report, normalized, currentId = '') {
   if (resolveReportTerm(report) !== normalized.term) return false
 
   if (normalized.bookMode === 'single') {
-    return reportBookMode === 'single' && report.bookId === normalized.bookId
+    if (reportBookMode !== 'single') return false
+    const normalizedBookIds = resolveReportSpecificBookIds(normalized)
+    const reportBookIds = resolveReportSpecificBookIds(report)
+    return normalizedBookIds.some((bookId) => reportBookIds.includes(bookId))
   }
 
   return reportBookMode === normalized.bookMode
@@ -72,5 +89,5 @@ export function reportMatchesBook(report, bookId) {
   const bookMode = resolveReportBookMode(report)
   if (bookMode === 'all') return true
   if (bookMode === 'exclude') return !(report?.bookIds || []).includes(bookId)
-  return report?.bookId === bookId
+  return resolveReportSpecificBookIds(report).includes(bookId)
 }

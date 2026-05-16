@@ -4,7 +4,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { createId, normalizeTerritories, normalizeText } from './db.js'
 import { runDbMutation, runDbRead } from './routeHelpers.js'
-import { hasReportConflict, normalizeReportPayload } from '../shared/reportRules.js'
+import {
+  hasReportConflict,
+  normalizeReportPayload,
+  resolveReportSpecificBookIds,
+} from '../shared/reportRules.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -35,7 +39,12 @@ function deleteByKind(db, kind, ids) {
   if (kind === 'books') {
     db.books = db.books.filter((item) => !idSet.has(item.id))
     db.reports = db.reports
-      .filter((item) => item.bookMode !== 'single' || !idSet.has(item.bookId))
+      .map((item) => {
+        if (item.bookMode !== 'single') return item
+        const bookIds = resolveReportSpecificBookIds(item).filter((bookId) => !idSet.has(bookId))
+        return { ...item, bookId: bookIds[0] || '', bookIds }
+      })
+      .filter((item) => item.bookMode !== 'single' || item.bookIds.length)
       .map((item) =>
         item.bookMode === 'exclude'
           ? { ...item, bookIds: (item.bookIds || []).filter((bookId) => !idSet.has(bookId)) }
@@ -236,8 +245,9 @@ function ensureReportRefs(db, payload) {
   }
 
   if (payload.bookMode === 'single') {
-    const book = db.books.find((item) => item.id === payload.bookId)
-    if (!book) {
+    const bookIdSet = new Set(db.books.map((item) => item.id))
+    const invalidBookIds = payload.bookIds.filter((bookId) => !bookIdSet.has(bookId))
+    if (invalidBookIds.length) {
       throw new Error('报备对象不存在，请刷新后重试。')
     }
   }
@@ -256,7 +266,7 @@ function validateReportPayload(normalized) {
     throw new Error('学校、推广商、报备学期均为必选项。')
   }
 
-  if (normalized.bookMode === 'single' && !normalized.bookId) {
+  if (normalized.bookMode === 'single' && !normalized.bookIds.length) {
     throw new Error('请选择要推广的书目。')
   }
 

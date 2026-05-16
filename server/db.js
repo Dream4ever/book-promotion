@@ -77,14 +77,22 @@ function normalizeReport(report) {
   const bookIds = Array.isArray(report?.bookIds)
     ? report.bookIds.map(normalizeText).filter(Boolean)
     : []
+  const specificBookIds = Array.from(
+    new Set([...bookIds, normalizeText(report?.bookId)].filter(Boolean)),
+  )
 
   return {
     ...report,
     id: report?.id || createId('report'),
     schoolId: normalizeText(report?.schoolId),
     bookMode,
-    bookId: bookMode === 'single' ? normalizeText(report?.bookId) : '',
-    bookIds: bookMode === 'exclude' ? Array.from(new Set(bookIds)) : [],
+    bookId: bookMode === 'single' ? specificBookIds[0] || '' : '',
+    bookIds:
+      bookMode === 'single'
+        ? specificBookIds
+        : bookMode === 'exclude'
+          ? Array.from(new Set(bookIds))
+          : [],
     promoterId: normalizeText(report?.promoterId),
     note: normalizeText(report?.note),
     term: normalizeText(report?.term) || inferTerm(report?.createdAt),
