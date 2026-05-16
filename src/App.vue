@@ -2,9 +2,9 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AnalyticsTab from './components/AnalyticsTab.vue'
 import BooksTab from './components/BooksTab.vue'
-import MultiSearchSelect from './components/MultiSearchSelect.vue'
 import ModalPanel from './components/ModalPanel.vue'
 import PromotersTab from './components/PromotersTab.vue'
+import ReportBookSelector from './components/ReportBookSelector.vue'
 import ReportsTab from './components/ReportsTab.vue'
 import SearchSelect from './components/SearchSelect.vue'
 import SchoolsTab from './components/SchoolsTab.vue'
@@ -20,7 +20,9 @@ import {
   normalizeReportPayload,
   normalizeTermText,
   reportMatchesBook,
+  resolveReportExcludedBookIds,
   resolveReportBookMode,
+  resolveReportSavedBookIds,
   resolveReportSpecificBookIds,
   resolveReportTerm,
 } from '../shared/reportRules.js'
@@ -47,12 +49,12 @@ const reportBookModeTabs = [
   {
     key: 'all',
     label: '选择所有书',
-    description: '不记录具体书目，备注默认为“推广所有图书”。',
+    description: '保存当前书目名单中的所有图书 ID，备注默认为“推广所有图书”。',
   },
   {
     key: 'exclude',
     label: '只排除某些书',
-    description: '记录被排除的图书 ID，备注默认为“只有所选图书不推广”。',
+    description: '选择不推广的图书，提交时保存未被排除的所有图书 ID。',
   },
 ]
 
@@ -224,9 +226,7 @@ const joinedReports = computed(() =>
       bookIds:
         bookMode === 'single'
           ? resolveReportSpecificBookIds(report)
-          : bookMode === 'exclude'
-            ? report.bookIds || []
-            : [],
+          : resolveReportSavedBookIds(report, store.state.books),
       province: school?.province || '',
       schoolName: school?.name || '学校已删除',
       schoolLabel: school ? `${school.province} / ${school.name}` : '学校已删除',
@@ -428,8 +428,18 @@ function validateReportForm() {
   if (reportForm.bookMode === 'single' && !reportForm.bookIds.length) {
     reportValidationErrors.bookId = '请选择要推广的书目。'
   }
+  if (reportForm.bookMode === 'all' && !store.state.books.length) {
+    reportValidationErrors.bookIds = '当前书目名单为空，无法选择所有书。'
+  }
   if (reportForm.bookMode === 'exclude' && !reportForm.bookIds.length) {
     reportValidationErrors.bookIds = '请选择需要排除的书目。'
+  }
+  if (
+    reportForm.bookMode === 'exclude' &&
+    reportForm.bookIds.length > 0 &&
+    reportForm.bookIds.length >= store.state.books.length
+  ) {
+    reportValidationErrors.bookIds = '排除后没有可报备的书目，请至少保留一本图书。'
   }
   if (!reportForm.promoterId) {
     reportValidationErrors.promoterId = '请选择推广商。'
@@ -537,7 +547,7 @@ function openReportModal(report = null) {
       reportForm.bookMode === 'single'
         ? resolveReportSpecificBookIds(report)
         : reportForm.bookMode === 'exclude'
-          ? [...(report.bookIds || [])]
+          ? resolveReportExcludedBookIds(report, store.state.books)
           : []
     reportForm.bookId = reportForm.bookMode === 'single' ? reportForm.bookIds[0] || '' : ''
     reportForm.promoterId = report.promoterId
@@ -692,7 +702,7 @@ async function submitReport() {
     closeReportError()
     return
   }
-  const payload = buildReportPayload()
+  const payload = buildReportFormPayload()
   busy.value = true
   closeReportError()
   try {
@@ -773,7 +783,7 @@ function getAgencyRecords(promoter) {
 }
 
 function resolveReportExcludedBooks(report) {
-  const ids = Array.isArray(report?.bookIds) ? report.bookIds : []
+  const ids = resolveReportExcludedBookIds(report, store.state.books)
   return ids
     .map((id) => store.state.books.find((book) => book.id === id))
     .filter(Boolean)
@@ -811,11 +821,11 @@ function formatReportBookSearchText(bookMode, specificBooks, excludedBooks) {
 }
 
 function isReportConflict(report) {
-  return hasReportConflict(report, buildReportPayload(), editing.reportId)
+  return hasReportConflict(report, buildReportConflictPayload(), editing.reportId, store.state.books)
 }
 
-function buildReportPayload() {
-  return normalizeReportPayload({
+function buildReportFormPayload() {
+  return {
     schoolId: reportForm.schoolId,
     bookMode: reportForm.bookMode,
     bookId: reportForm.bookIds[0] || reportForm.bookId,
@@ -823,7 +833,11 @@ function buildReportPayload() {
     promoterId: reportForm.promoterId,
     term: reportForm.term,
     note: reportForm.note,
-  })
+  }
+}
+
+function buildReportConflictPayload() {
+  return normalizeReportPayload(buildReportFormPayload(), store.state.books)
 }
 
 function formatAgencyRecordsText(records) {
@@ -1230,56 +1244,16 @@ onMounted(async () => {
           />
           <p v-if="reportValidationErrors.schoolId" class="field-error-text">{{ reportValidationErrors.schoolId }}</p>
         </div>
-        <div>
-          <label class="label-text">书目</label>
-          <div
-            class="grid gap-4 rounded-2xl border border-sand-200 bg-sand-50 p-4"
-            :class="{ 'border-red-300 bg-red-50/40': reportValidationErrors.bookId || reportValidationErrors.bookIds }"
-          >
-            <div class="flex flex-col gap-2 sm:flex-row" role="tablist" aria-label="书目选择方式">
-              <button
-                v-for="mode in reportBookModeTabs"
-                :key="mode.key"
-                type="button"
-                class="flex-1 rounded-xl border px-3 py-3 text-left text-sm font-medium transition"
-                :class="reportForm.bookMode === mode.key
-                  ? 'border-pine-600 bg-pine-600 text-white shadow-sm'
-                  : 'border-sand-200 bg-white text-sand-700 hover:border-sand-300 hover:bg-sand-100'"
-                role="tab"
-                :aria-selected="reportForm.bookMode === mode.key"
-                @click="selectReportBookMode(mode.key)"
-              >
-                {{ mode.label }}
-              </button>
-            </div>
-
-            <div class="rounded-xl bg-white px-3 py-3">
-              <p class="text-xs leading-5 text-sand-500">
-                {{ reportBookModeTabs.find((mode) => mode.key === reportForm.bookMode)?.description }}
-              </p>
-              <div v-if="reportForm.bookMode === 'single'" class="mt-3">
-                <MultiSearchSelect
-                  v-model="reportForm.bookIds"
-                  :options="bookOptions"
-                  placeholder="输入 ISBN 或书名"
-                  empty-text="未匹配到书目"
-                  :invalid="Boolean(reportValidationErrors.bookId)"
-                />
-                <p v-if="reportValidationErrors.bookId" class="field-error-text">{{ reportValidationErrors.bookId }}</p>
-              </div>
-              <div v-else-if="reportForm.bookMode === 'exclude'" class="mt-3">
-                <MultiSearchSelect
-                  v-model="reportForm.bookIds"
-                  :options="bookOptions"
-                  placeholder="搜索要排除的 ISBN 或书名"
-                  empty-text="未匹配到书目"
-                  :invalid="Boolean(reportValidationErrors.bookIds)"
-                />
-                <p v-if="reportValidationErrors.bookIds" class="field-error-text">{{ reportValidationErrors.bookIds }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ReportBookSelector
+          :book-mode="reportForm.bookMode"
+          :book-ids="reportForm.bookIds"
+          :modes="reportBookModeTabs"
+          :book-options="bookOptions"
+          :book-id-error="reportValidationErrors.bookId"
+          :book-ids-error="reportValidationErrors.bookIds"
+          @select-mode="selectReportBookMode"
+          @update:book-ids="reportForm.bookIds = $event"
+        />
         <div>
           <label class="label-text">推广商</label>
           <SearchSelect
@@ -1296,7 +1270,7 @@ onMounted(async () => {
           <textarea v-model="reportForm.note" class="field-input min-h-24" placeholder="可选"></textarea>
         </div>
         <div v-if="conflictRecord" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {{ conflictRecord.term }} 的当前组合已被
+          {{ conflictRecord.term }} 的所选书目中已有图书被
           <span class="font-semibold">{{ promoterOptions.find((item) => item.id === conflictRecord.promoterId)?.label || '其他推广商' }}</span>
           报备，系统会阻止重复提交。
         </div>

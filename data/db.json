@@ -1086,5 +1086,21 @@
       "agencyRecords": []
     }
   ],
-  "reports": []
+  "reports": [
+    {
+      "id": "report_1778942920130_ffvai3",
+      "schoolId": "school_1775832205007_kq8vc5",
+      "bookMode": "single",
+      "bookId": "book_1775832315313_j2mnc2",
+      "bookIds": [
+        "book_1775832315313_j2mnc2",
+        "book_1775832315313_vudkkc",
+        "book_1775832315313_8j5rio"
+      ],
+      "promoterId": "promoter_1775832343461_m7xc6o",
+      "term": "2024年春",
+      "note": "",
+      "createdAt": "2026-05-16T14:48:40.130Z"
+    }
+  ]
 }

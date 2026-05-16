@@ -16,10 +16,14 @@ export function resolveReportBookMode(report) {
   return REPORT_BOOK_MODES.includes(report?.bookMode) ? report.bookMode : 'single'
 }
 
-function normalizeBookIdList(value) {
+export function normalizeBookIdList(value) {
   return Array.isArray(value)
     ? Array.from(new Set(value.map(normalizeText).filter(Boolean)))
     : []
+}
+
+export function resolveAvailableBookIds(books = []) {
+  return normalizeBookIdList(books.map((book) => book?.id))
 }
 
 export function resolveReportSpecificBookIds(report) {
@@ -44,15 +48,48 @@ export function resolveReportTerm(report, now = new Date()) {
   return term || inferReportTerm(report?.createdAt, now)
 }
 
-export function normalizeReportPayload(payload) {
+export function resolveReportSavedBookIds(report, books = []) {
+  const bookMode = resolveReportBookMode(report)
+  const storedBookIds = normalizeBookIdList(report?.bookIds)
+
+  if (bookMode === 'single') {
+    return resolveReportSpecificBookIds(report)
+  }
+
+  if (bookMode === 'all') {
+    return storedBookIds.length ? storedBookIds : resolveAvailableBookIds(books)
+  }
+
+  return storedBookIds
+}
+
+export function resolveReportExcludedBookIds(report, books = []) {
+  if (resolveReportBookMode(report) !== 'exclude') return []
+  const savedBookIds = new Set(resolveReportSavedBookIds(report, books))
+  return resolveAvailableBookIds(books).filter((bookId) => !savedBookIds.has(bookId))
+}
+
+export function normalizeReportPayload(payload, books = [], options = {}) {
   const bookMode = resolveReportBookMode(payload)
+  const availableBookIds = resolveAvailableBookIds(books)
+  const inputBookIds = normalizeBookIdList(payload?.bookIds)
+  const bookIdsAreSaved = options.bookIdsAreSaved === true
   const specificBookIds = bookMode === 'single' ? resolveReportSpecificBookIds(payload) : []
-  const excludedBookIds = bookMode === 'exclude' ? normalizeBookIdList(payload?.bookIds) : []
+  const savedBookIds =
+    bookMode === 'single'
+      ? specificBookIds
+      : bookMode === 'all'
+        ? bookIdsAreSaved && inputBookIds.length
+          ? inputBookIds
+          : availableBookIds
+        : bookIdsAreSaved
+          ? inputBookIds
+          : availableBookIds.filter((bookId) => !inputBookIds.includes(bookId))
   const normalized = {
     schoolId: normalizeText(payload?.schoolId),
     bookMode,
     bookId: bookMode === 'single' ? specificBookIds[0] || '' : '',
-    bookIds: bookMode === 'single' ? specificBookIds : excludedBookIds,
+    bookIds: savedBookIds,
     promoterId: normalizeText(payload?.promoterId),
     term: normalizeTermText(payload?.term),
     note: normalizeText(payload?.note),
@@ -69,25 +106,19 @@ export function normalizeReportPayload(payload) {
   return normalized
 }
 
-export function hasReportConflict(report, normalized, currentId = '') {
-  const reportBookMode = resolveReportBookMode(report)
+export function hasReportConflict(report, normalized, currentId = '', books = []) {
   if (report?.id === currentId) return false
   if (report?.schoolId !== normalized.schoolId) return false
   if (resolveReportTerm(report) !== normalized.term) return false
 
-  if (normalized.bookMode === 'single') {
-    if (reportBookMode !== 'single') return false
-    const normalizedBookIds = resolveReportSpecificBookIds(normalized)
-    const reportBookIds = resolveReportSpecificBookIds(report)
-    return normalizedBookIds.some((bookId) => reportBookIds.includes(bookId))
-  }
-
-  return reportBookMode === normalized.bookMode
+  const normalizedBookIds = resolveReportSavedBookIds(normalized, books)
+  const reportBookIds = resolveReportSavedBookIds(report, books)
+  return normalizedBookIds.some((bookId) => reportBookIds.includes(bookId))
 }
 
 export function reportMatchesBook(report, bookId) {
   const bookMode = resolveReportBookMode(report)
-  if (bookMode === 'all') return true
-  if (bookMode === 'exclude') return !(report?.bookIds || []).includes(bookId)
-  return resolveReportSpecificBookIds(report).includes(bookId)
+  const savedBookIds = resolveReportSavedBookIds(report)
+  if (bookMode === 'all' && !savedBookIds.length) return true
+  return savedBookIds.includes(bookId)
 }

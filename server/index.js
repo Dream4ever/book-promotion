@@ -7,7 +7,7 @@ import { runDbMutation, runDbRead } from './routeHelpers.js'
 import {
   hasReportConflict,
   normalizeReportPayload,
-  resolveReportSpecificBookIds,
+  resolveReportSavedBookIds,
 } from '../shared/reportRules.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -40,16 +40,14 @@ function deleteByKind(db, kind, ids) {
     db.books = db.books.filter((item) => !idSet.has(item.id))
     db.reports = db.reports
       .map((item) => {
-        if (item.bookMode !== 'single') return item
-        const bookIds = resolveReportSpecificBookIds(item).filter((bookId) => !idSet.has(bookId))
-        return { ...item, bookId: bookIds[0] || '', bookIds }
+        const bookIds = resolveReportSavedBookIds(item).filter((bookId) => !idSet.has(bookId))
+        return {
+          ...item,
+          bookId: item.bookMode === 'single' ? bookIds[0] || '' : '',
+          bookIds,
+        }
       })
-      .filter((item) => item.bookMode !== 'single' || item.bookIds.length)
-      .map((item) =>
-        item.bookMode === 'exclude'
-          ? { ...item, bookIds: (item.bookIds || []).filter((bookId) => !idSet.has(bookId)) }
-          : item,
-      )
+      .filter((item) => item.bookIds.length)
     return
   }
 
@@ -244,20 +242,10 @@ function ensureReportRefs(db, payload) {
     throw new Error('报备对象不存在，请刷新后重试。')
   }
 
-  if (payload.bookMode === 'single') {
-    const bookIdSet = new Set(db.books.map((item) => item.id))
-    const invalidBookIds = payload.bookIds.filter((bookId) => !bookIdSet.has(bookId))
-    if (invalidBookIds.length) {
-      throw new Error('报备对象不存在，请刷新后重试。')
-    }
-  }
-
-  if (payload.bookMode === 'exclude') {
-    const bookIdSet = new Set(db.books.map((item) => item.id))
-    const invalidBookIds = payload.bookIds.filter((bookId) => !bookIdSet.has(bookId))
-    if (invalidBookIds.length) {
-      throw new Error('报备对象不存在，请刷新后重试。')
-    }
+  const bookIdSet = new Set(db.books.map((item) => item.id))
+  const invalidBookIds = payload.bookIds.filter((bookId) => !bookIdSet.has(bookId))
+  if (invalidBookIds.length) {
+    throw new Error('报备对象不存在，请刷新后重试。')
   }
 }
 
@@ -270,19 +258,23 @@ function validateReportPayload(normalized) {
     throw new Error('请选择要推广的书目。')
   }
 
+  if (normalized.bookMode === 'all' && !normalized.bookIds.length) {
+    throw new Error('当前书目名单为空，无法选择所有书。')
+  }
+
   if (normalized.bookMode === 'exclude' && !normalized.bookIds.length) {
-    throw new Error('请选择需要排除的书目。')
+    throw new Error('排除后没有可报备的书目，请至少保留一本图书。')
   }
 }
 
 function createReport(db, payload) {
-  const normalized = normalizeReportPayload(payload)
+  const normalized = normalizeReportPayload(payload, db.books)
   validateReportPayload(normalized)
   ensureReportRefs(db, normalized)
 
-  const existing = db.reports.find((item) => hasReportConflict(item, normalized))
+  const existing = db.reports.find((item) => hasReportConflict(item, normalized, '', db.books))
   if (existing) {
-    throw new Error('该学校当前学期已存在相同报备规则，不允许重复。')
+    throw new Error('该学校当前学期已有图书被报备，不允许重复报备同一本书。')
   }
 
   const created = {
@@ -295,7 +287,7 @@ function createReport(db, payload) {
 }
 
 function updateReport(db, id, payload) {
-  const normalized = normalizeReportPayload(payload)
+  const normalized = normalizeReportPayload(payload, db.books)
   validateReportPayload(normalized)
 
   const index = db.reports.findIndex((item) => item.id === id)
@@ -305,9 +297,9 @@ function updateReport(db, id, payload) {
 
   ensureReportRefs(db, normalized)
 
-  const duplicate = db.reports.find((item) => hasReportConflict(item, normalized, id))
+  const duplicate = db.reports.find((item) => hasReportConflict(item, normalized, id, db.books))
   if (duplicate) {
-    throw new Error('该学校当前学期已存在相同报备规则，不允许重复。')
+    throw new Error('该学校当前学期已有图书被报备，不允许重复报备同一本书。')
   }
 
   db.reports[index] = {

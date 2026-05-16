@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { normalizeReportPayload } from '../shared/reportRules.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -70,32 +71,20 @@ function normalizePromoter(promoter) {
   }
 }
 
-function normalizeReport(report) {
-  const bookMode = ['single', 'all', 'exclude'].includes(report?.bookMode)
-    ? report.bookMode
-    : 'single'
-  const bookIds = Array.isArray(report?.bookIds)
-    ? report.bookIds.map(normalizeText).filter(Boolean)
-    : []
-  const specificBookIds = Array.from(
-    new Set([...bookIds, normalizeText(report?.bookId)].filter(Boolean)),
+function normalizeReport(report, books) {
+  const normalized = normalizeReportPayload(
+    {
+      ...report,
+      term: normalizeText(report?.term) || inferTerm(report?.createdAt),
+    },
+    books,
+    { bookIdsAreSaved: true },
   )
 
   return {
     ...report,
     id: report?.id || createId('report'),
-    schoolId: normalizeText(report?.schoolId),
-    bookMode,
-    bookId: bookMode === 'single' ? specificBookIds[0] || '' : '',
-    bookIds:
-      bookMode === 'single'
-        ? specificBookIds
-        : bookMode === 'exclude'
-          ? Array.from(new Set(bookIds))
-          : [],
-    promoterId: normalizeText(report?.promoterId),
-    note: normalizeText(report?.note),
-    term: normalizeText(report?.term) || inferTerm(report?.createdAt),
+    ...normalized,
   }
 }
 
@@ -113,11 +102,14 @@ export async function readDb() {
   const raw = await fs.readFile(DB_FILE, 'utf-8')
   try {
     const parsed = JSON.parse(raw)
+    const books = Array.isArray(parsed.books) ? parsed.books : []
     const normalized = {
       schools: Array.isArray(parsed.schools) ? parsed.schools : [],
-      books: Array.isArray(parsed.books) ? parsed.books : [],
+      books,
       promoters: Array.isArray(parsed.promoters) ? parsed.promoters.map(normalizePromoter) : [],
-      reports: Array.isArray(parsed.reports) ? parsed.reports.map(normalizeReport) : [],
+      reports: Array.isArray(parsed.reports)
+        ? parsed.reports.map((report) => normalizeReport(report, books))
+        : [],
     }
     if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
       await fs.writeFile(DB_FILE, JSON.stringify(normalized, null, 2), 'utf-8')
