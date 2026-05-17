@@ -158,17 +158,17 @@
 - [x] `App.vue` 不再直接维护统计明细状态和汇总函数
 - [x] 统计筛选、点击明细、导出明细行为不变
 
-## 待办: P2 拆分 Supabase 行映射与写入 diff
+## 已完成: P2 拆分 Supabase 行映射与写入 diff
 
-`server/db.js` 目前同时包含环境配置、行映射、diff、读写和迁移逻辑，文件体积较大。应分阶段拆出纯函数，降低后续数据库结构调整成本。
+`server/db.js` 已将 Supabase row mapper / row builder 和写入 diff 纯函数拆到独立模块，文件继续聚焦数据库读写编排、迁移和 Supabase 客户端调用。
 
-- [ ] 抽出 Supabase row mapper / row builder 纯函数
-- [ ] 抽出 diff / pickByIds 等写入辅助函数
-- [ ] 给纯函数补单元测试
-- [ ] 执行 `npm test`、`node --check server/db.js` 和 `npm run build`
+- [x] 抽出 Supabase row mapper / row builder 纯函数
+- [x] 抽出 diff / pickByIds 等写入辅助函数
+- [x] 给纯函数补单元测试
+- [x] 执行 `npm test`、`node --check server/db.js` 和 `npm run build`
 
 验收点:
 
-- [ ] `server/db.js` 聚焦数据库编排流程
-- [ ] 行结构映射和差异计算可以单独测试
-- [ ] 现有 Supabase 读写表名和 RPC 配置行为不变
+- [x] `server/db.js` 聚焦数据库编排流程
+- [x] 行结构映射和差异计算可以单独测试
+- [x] 现有 Supabase 读写表名和 RPC 配置行为不变
