@@ -19,6 +19,12 @@ import { useRowSelection } from './composables/useRowSelection'
 import { PROVINCES } from './constants/provinces'
 import { api, getErrorMessage } from './utils/api'
 import {
+  formatAgencyRecordsText,
+  formatTerritoryText as promoterTerritoryText,
+  latestAgencyRecord,
+  normalizeAgencyRecords as getAgencyRecords,
+} from './utils/promoterAgencyRecords'
+import {
   reportMatchesBook,
   resolveReportExcludedBookIds,
   resolveReportBookMode,
@@ -440,38 +446,6 @@ function deleteReport(report) {
   runAction(() => api.deleteReport(report.id), '报备记录已删除，并同步更新 Supabase。')
 }
 
-function promoterTerritoryText(territories) {
-  if (!territories?.length) return '未配置'
-  return territories
-    .map((item) => `${item.province}(${item.accepting ? '接单' : '不接单'})`)
-    .join('、')
-}
-
-function getAgencyRecords(promoter) {
-  if (Array.isArray(promoter?.agencyRecords) && promoter.agencyRecords.length) {
-    return promoter.agencyRecords
-  }
-
-  const legacyTerritories = Array.isArray(promoter?.territories) ? promoter.territories : []
-  const hasLegacyAgencyData =
-    promoter?.agencyYear ||
-    promoter?.agencyPeriod ||
-    promoter?.workload ||
-    legacyTerritories.length
-
-  if (!hasLegacyAgencyData) return []
-
-  return [
-    {
-      id: promoter?.id ? `${promoter.id}_legacy` : `legacy_${Date.now()}`,
-      year: String(promoter?.agencyYear || CURRENT_YEAR),
-      agencyPeriod: promoter?.agencyPeriod || '',
-      workload: promoter?.workload || '',
-      territories: legacyTerritories,
-    },
-  ]
-}
-
 function resolveReportExcludedBooks(report) {
   const ids = resolveReportExcludedBookIds(report, store.state.books)
   return ids
@@ -508,21 +482,6 @@ function formatReportBookSearchText(bookMode, specificBooks, excludedBooks) {
   return specificBooks.length
     ? `指定图书 ${specificBooks.map((book) => `${book.title} ${book.isbn}`).join(' ')}`
     : '书目已删除'
-}
-
-function formatAgencyRecordsText(records) {
-  if (!records?.length) return '未配置'
-  return records
-    .map(
-      (item) =>
-        `${item.year}年: ${promoterTerritoryText(item.territories)} / ${item.agencyPeriod || '-'} / ${item.workload || '-'}`,
-    )
-    .join('；')
-}
-
-function latestAgencyRecord(records) {
-  if (!records?.length) return null
-  return [...records].sort((a, b) => Number(b.year) - Number(a.year))[0]
 }
 
 function formatTime(value) {

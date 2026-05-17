@@ -112,3 +112,63 @@
 
 - [x] 单选和多选组件搜索行为一致
 - [x] 弹层关闭、清空、选择行为稳定
+
+## 已完成: P1 抽取推广商年度代理记录工具
+
+`App.vue` 和 `PromoterModal.vue` 已复用 `src/utils/promoterAgencyRecords.js` 处理年度代理记录的 legacy 数据兼容、深拷贝和展示文本，避免后续修改两处逻辑不一致。
+
+- [x] 新增 `src/utils/promoterAgencyRecords.js`
+- [x] 统一 legacy 推广商代理记录规范化逻辑
+- [x] 统一代理省份和年度代理记录的展示文本格式化
+- [x] 补充 Vitest 覆盖 legacy 数据、深拷贝、最新年度记录选择
+- [x] 执行 `npm test` 和 `npm run build`
+
+验收点:
+
+- [x] `App.vue` 不再维护推广商代理记录兼容和格式化细节
+- [x] `PromoterModal.vue` 复用共享 helper 初始化表单数据
+- [x] 推广商搜索、列表展示、导入预览和导出行为不变
+
+## 待办: P1 抽取报备展示视图模型
+
+`App.vue` 仍在组装报备列表、搜索文本、统计明细需要的展示字段；这些规则与 tab 组件和导出逻辑共享，适合抽成纯函数或 composable。
+
+- [ ] 新增报备展示 view-model helper
+- [ ] 将书目标签、搜索文本、学校/推广商标签组装移出 `App.vue`
+- [ ] 给单本、全部、排除模式补展示规则测试
+- [ ] 执行 `npm test` 和 `npm run build`
+
+验收点:
+
+- [ ] `joinedReports` 只负责调用 helper 并传入当前数据
+- [ ] 报备列表、搜索、统计和导出使用同一展示字段
+- [ ] 三种图书模式的展示文案保持一致
+
+## 待办: P2 拆分统计筛选与明细逻辑
+
+统计 tab 的筛选、汇总、明细弹窗状态仍由 `App.vue` 集中管理，可抽成 `useRegistryAnalytics`，让页面骨架继续变薄。
+
+- [ ] 新增 `src/composables/useRegistryAnalytics.js`
+- [ ] 移动统计筛选、汇总、明细打开/关闭逻辑
+- [ ] 保持 `AnalyticsTab.vue` props/emits 边界不变或更清晰
+- [ ] 执行 `npm test` 和 `npm run build`
+
+验收点:
+
+- [ ] `App.vue` 不再直接维护统计明细状态和汇总函数
+- [ ] 统计筛选、点击明细、导出明细行为不变
+
+## 待办: P2 拆分 Supabase 行映射与写入 diff
+
+`server/db.js` 目前同时包含环境配置、行映射、diff、读写和迁移逻辑，文件体积较大。应分阶段拆出纯函数，降低后续数据库结构调整成本。
+
+- [ ] 抽出 Supabase row mapper / row builder 纯函数
+- [ ] 抽出 diff / pickByIds 等写入辅助函数
+- [ ] 给纯函数补单元测试
+- [ ] 执行 `npm test`、`node --check server/db.js` 和 `npm run build`
+
+验收点:
+
+- [ ] `server/db.js` 聚焦数据库编排流程
+- [ ] 行结构映射和差异计算可以单独测试
+- [ ] 现有 Supabase 读写表名和 RPC 配置行为不变

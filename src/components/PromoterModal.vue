@@ -1,6 +1,12 @@
 <script setup>
 import { reactive, watch } from 'vue'
 import ModalPanel from './ModalPanel.vue'
+import {
+  cloneAgencyRecords,
+  cloneTerritories,
+  formatTerritoryText,
+  normalizeAgencyRecords,
+} from '../utils/promoterAgencyRecords'
 
 const props = defineProps({
   visible: {
@@ -40,34 +46,6 @@ const form = reactive({
 })
 const localError = reactive({ text: '' })
 
-function normalizeAgencyRecords(promoter) {
-  if (Array.isArray(promoter?.agencyRecords) && promoter.agencyRecords.length) {
-    return promoter.agencyRecords.map((item) => ({
-      ...item,
-      territories: (item.territories || []).map((territory) => ({ ...territory })),
-    }))
-  }
-
-  const legacyTerritories = Array.isArray(promoter?.territories) ? promoter.territories : []
-  const hasLegacyAgencyData =
-    promoter?.agencyYear ||
-    promoter?.agencyPeriod ||
-    promoter?.workload ||
-    legacyTerritories.length
-
-  if (!hasLegacyAgencyData) return []
-
-  return [
-    {
-      id: promoter?.id ? `${promoter.id}_legacy` : `legacy_${Date.now()}`,
-      year: String(promoter?.agencyYear || CURRENT_YEAR),
-      agencyPeriod: promoter?.agencyPeriod || '',
-      workload: promoter?.workload || '',
-      territories: legacyTerritories.map((territory) => ({ ...territory })),
-    },
-  ]
-}
-
 function resetAgencyDraft() {
   form.agencyRecordId = ''
   form.agencyYear = String(CURRENT_YEAR)
@@ -82,7 +60,9 @@ function resetForm() {
   form.name = props.promoter?.name || ''
   form.contact = props.promoter?.contact || ''
   form.phone = props.promoter?.phone || ''
-  form.agencyRecords = props.promoter ? normalizeAgencyRecords(props.promoter) : []
+  form.agencyRecords = props.promoter
+    ? normalizeAgencyRecords(props.promoter, { currentYear: CURRENT_YEAR })
+    : []
   localError.text = ''
   resetAgencyDraft()
 }
@@ -97,13 +77,6 @@ watch(
 
 function setLocalError(text) {
   localError.text = text
-}
-
-function promoterTerritoryText(territories) {
-  if (!territories?.length) return '未配置'
-  return territories
-    .map((item) => `${item.province}(${item.accepting ? '接单' : '不接单'})`)
-    .join('、')
 }
 
 function addTerritory() {
@@ -138,7 +111,7 @@ function saveAgencyRecord() {
     year: form.agencyYear,
     agencyPeriod: form.agencyPeriod,
     workload: form.workload,
-    territories: form.territories.map((item) => ({ ...item })),
+    territories: cloneTerritories(form.territories),
   }
 
   const duplicateYear = form.agencyRecords.find(
@@ -169,7 +142,7 @@ function editAgencyRecord(record) {
   form.workload = record.workload
   form.province = ''
   form.accepting = true
-  form.territories = record.territories.map((item) => ({ ...item }))
+  form.territories = cloneTerritories(record.territories)
   localError.text = ''
 }
 
@@ -194,10 +167,7 @@ function submit() {
     name: form.name,
     contact: form.contact,
     phone: form.phone,
-    agencyRecords: form.agencyRecords.map((record) => ({
-      ...record,
-      territories: record.territories.map((territory) => ({ ...territory })),
-    })),
+    agencyRecords: cloneAgencyRecords(form.agencyRecords),
   })
 }
 </script>
@@ -302,7 +272,7 @@ function submit() {
             <tbody>
               <tr v-for="record in form.agencyRecords" :key="record.id" class="border-b border-sand-100 align-top">
                 <td class="px-3 py-3 font-medium text-sand-900">{{ record.year }}年</td>
-                <td class="px-3 py-3 text-xs leading-6 text-sand-700">{{ promoterTerritoryText(record.territories) }}</td>
+                <td class="px-3 py-3 text-xs leading-6 text-sand-700">{{ formatTerritoryText(record.territories) }}</td>
                 <td class="px-3 py-3">{{ record.agencyPeriod || '-' }}</td>
                 <td class="px-3 py-3">{{ record.workload || '-' }}</td>
                 <td class="px-3 py-3">
