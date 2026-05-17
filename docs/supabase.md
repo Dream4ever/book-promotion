@@ -124,13 +124,46 @@ SUPABASE_STATE_TABLE=app_state
 SUPABASE_STATE_ID=school_promo_registry
 ```
 
-On the first API read, if the new normalized tables are empty, the backend will
-read `app_state.data`, normalize it, and write it into the new tables.
+Run the explicit migration script after creating the normalized tables:
+
+```bash
+npm run migrate:legacy
+```
+
+The script refuses to overwrite non-empty normalized tables. If you have
+verified that the normalized tables should be replaced from the legacy JSON row,
+run:
+
+```bash
+npm run migrate:legacy -- --force
+```
 
 After verifying the migrated data, the old `app_state` table is no longer used
 by the app and can be archived or dropped manually.
 
-## 4. Run the app
+## 4. Write reliability
+
+The API serializes write requests inside the Node process before running
+`readDb -> mutate -> writeDb`, so concurrent requests handled by the same API
+process cannot overwrite each other with stale snapshots.
+
+`writeDb` updates only changed normalized rows and their affected relationship
+rows instead of clearing every table on each mutation. For example, editing a
+report replaces that report's `report_books` rows and upserts the report row,
+without truncating schools, books, or promoters.
+
+Supabase REST writes are still separate HTTP calls. For database-level atomicity
+across multiple tables, create a Postgres RPC that applies `next_state` and
+`previous_state` in one transaction, then set:
+
+```bash
+SUPABASE_WRITE_RPC=replace_registry_state
+```
+
+When this variable is present, the API writes through the RPC. When it is absent,
+the API uses the granular table fallback described above.
+
+## 5. Run the app
 
 ```bash
 npm run dev
@@ -139,9 +172,8 @@ npm run dev
 ## Notes
 
 - Existing `data/db.json` is no longer read or written by the API.
-- Writes are persisted across normalized tables. The current API mutation flow
-  still rewrites the small registry snapshot after each change, but the database
-  schema is now queryable by entity and relationship.
+- Writes are persisted across normalized tables, and normal mutations only touch
+  affected entity and relationship rows.
 - `report_books` stores the saved book set for each report. For `exclude` mode,
   this is the final promoted book set after exclusions, matching existing
   conflict and analytics rules.

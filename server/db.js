@@ -273,6 +273,35 @@ async function insertRows(table, rows) {
   assertNoError(error, `Failed to write Supabase table ${table}`)
 }
 
+async function upsertRows(table, rows, onConflict = 'id') {
+  if (!rows.length) return
+  const { error } = await getSupabase().from(table).upsert(rows, { onConflict })
+  assertNoError(error, `Failed to upsert Supabase table ${table}`)
+}
+
+async function deleteRows(table, column, values) {
+  const ids = [...new Set(values)].filter(Boolean)
+  if (!ids.length) return
+  const { error } = await getSupabase().from(table).delete().in(column, ids)
+  assertNoError(error, `Failed to delete from Supabase table ${table}`)
+}
+
+function getWriteRpcName() {
+  return process.env.SUPABASE_WRITE_RPC?.trim()
+}
+
+async function writeDbViaRpc(normalized, previous) {
+  const rpcName = getWriteRpcName()
+  if (!rpcName) return false
+
+  const { error } = await getSupabase().rpc(rpcName, {
+    next_state: normalized,
+    previous_state: previous || null,
+  })
+  assertNoError(error, `Failed to write Supabase data through RPC ${rpcName}`)
+  return true
+}
+
 async function readLegacyState() {
   const { data, error } = await getSupabase()
     .from(getLegacyStateTable())
@@ -347,65 +376,66 @@ function hasAnyData(db) {
   )
 }
 
-export async function readDb() {
-  const db = await readStructuredDb()
-  if (hasAnyData(db)) return db
-
-  const legacyState = await readLegacyState()
-  if (!legacyState) return clone(DEFAULT_DB)
-
-  const migrated = normalizeDb(legacyState)
-  if (hasAnyData(migrated)) {
-    await writeDb(migrated)
-  }
-  return migrated
+function mapById(rows) {
+  return new Map((rows || []).map((row) => [row.id, row]))
 }
 
-export async function writeDb(data) {
-  const normalized = normalizeDb(data)
-  const tables = getTables()
+function isChanged(previous, next) {
+  return JSON.stringify(previous || null) !== JSON.stringify(next || null)
+}
 
-  await clearTable(tables.reportBooks, 'report_id')
-  await clearTable(tables.reports)
-  await clearTable(tables.promoterTerritories, 'agency_record_id')
-  await clearTable(tables.promoterAgencyRecords)
-  await clearTable(tables.promoters)
-  await clearTable(tables.books)
-  await clearTable(tables.schools)
+function diffById(previousRows, nextRows) {
+  const previousById = mapById(previousRows)
+  const nextById = mapById(nextRows)
+  const changed = []
+  const removedIds = []
 
-  await insertRows(
-    tables.schools,
-    normalized.schools.map((school, index) => ({
-      id: school.id,
-      province: school.province,
-      name: school.name,
-      sort_order: index,
-    })),
-  )
+  for (const [id, next] of nextById) {
+    if (!previousById.has(id) || isChanged(previousById.get(id), next)) {
+      changed.push(next)
+    }
+  }
 
-  await insertRows(
-    tables.books,
-    normalized.books.map((book, index) => ({
-      id: book.id,
-      isbn: book.isbn,
-      title: book.title,
-      price: book.price,
-      sort_order: index,
-    })),
-  )
+  for (const [id] of previousById) {
+    if (!nextById.has(id)) {
+      removedIds.push(id)
+    }
+  }
 
-  await insertRows(
-    tables.promoters,
-    normalized.promoters.map((promoter, index) => ({
-      id: promoter.id,
-      name: promoter.name,
-      contact: promoter.contact,
-      phone: promoter.phone,
-      sort_order: index,
-    })),
-  )
+  return { changed, removedIds }
+}
 
-  const agencyRecords = normalized.promoters.flatMap((promoter) =>
+function buildSchoolRows(schools) {
+  return schools.map((school, index) => ({
+    id: school.id,
+    province: school.province,
+    name: school.name,
+    sort_order: index,
+  }))
+}
+
+function buildBookRows(books) {
+  return books.map((book, index) => ({
+    id: book.id,
+    isbn: book.isbn,
+    title: book.title,
+    price: book.price,
+    sort_order: index,
+  }))
+}
+
+function buildPromoterRows(promoters) {
+  return promoters.map((promoter, index) => ({
+    id: promoter.id,
+    name: promoter.name,
+    contact: promoter.contact,
+    phone: promoter.phone,
+    sort_order: index,
+  }))
+}
+
+function buildAgencyRecordRows(promoters) {
+  return promoters.flatMap((promoter) =>
     promoter.agencyRecords.map((record, index) => ({
       id: record.id,
       promoter_id: promoter.id,
@@ -415,9 +445,10 @@ export async function writeDb(data) {
       sort_order: index,
     })),
   )
-  await insertRows(tables.promoterAgencyRecords, agencyRecords)
+}
 
-  const territories = normalized.promoters.flatMap((promoter) =>
+function buildTerritoryRows(promoters) {
+  return promoters.flatMap((promoter) =>
     promoter.agencyRecords.flatMap((record) =>
       record.territories.map((territory, index) => ({
         agency_record_id: record.id,
@@ -427,32 +458,144 @@ export async function writeDb(data) {
       })),
     ),
   )
-  await insertRows(tables.promoterTerritories, territories)
+}
 
-  await insertRows(
-    tables.reports,
-    normalized.reports.map((report, index) => ({
-      id: report.id,
-      school_id: report.schoolId,
-      book_mode: report.bookMode,
-      book_id: report.bookId,
-      promoter_id: report.promoterId,
-      term: report.term,
-      note: report.note,
-      created_at: report.createdAt || new Date().toISOString(),
-      updated_at: report.updatedAt || null,
-      sort_order: index,
-    })),
-  )
+function buildReportRows(reports) {
+  return reports.map((report, index) => ({
+    id: report.id,
+    school_id: report.schoolId,
+    book_mode: report.bookMode,
+    book_id: report.bookId,
+    promoter_id: report.promoterId,
+    term: report.term,
+    note: report.note,
+    created_at: report.createdAt || new Date().toISOString(),
+    updated_at: report.updatedAt || null,
+    sort_order: index,
+  }))
+}
 
-  const reportBooks = normalized.reports.flatMap((report) =>
+function buildReportBookRows(reports) {
+  return reports.flatMap((report) =>
     report.bookIds.map((bookId, index) => ({
       report_id: report.id,
       book_id: bookId,
       sort_order: index,
     })),
   )
-  await insertRows(tables.reportBooks, reportBooks)
+}
+
+function pickByIds(rows, ids) {
+  const idSet = new Set(ids)
+  return rows.filter((row) => idSet.has(row.id))
+}
+
+export async function readDb() {
+  const db = await readStructuredDb()
+  if (hasAnyData(db)) return db
+
+  return clone(DEFAULT_DB)
+}
+
+export async function migrateLegacyState({ force = false } = {}) {
+  const legacyState = await readLegacyState()
+  if (!legacyState) {
+    return { migrated: false, reason: 'legacy_state_missing', count: 0 }
+  }
+
+  const current = await readStructuredDb()
+  if (hasAnyData(current) && !force) {
+    return { migrated: false, reason: 'structured_tables_not_empty', count: 0 }
+  }
+
+  const migrated = normalizeDb(legacyState)
+  if (!hasAnyData(migrated)) {
+    return { migrated: false, reason: 'legacy_state_empty', count: 0 }
+  }
+
+  await replaceDb(migrated)
+  return {
+    migrated: true,
+    count:
+      migrated.schools.length +
+      migrated.books.length +
+      migrated.promoters.length +
+      migrated.reports.length,
+  }
+}
+
+export async function replaceDb(data) {
+  const normalized = normalizeDb(data)
+  const tables = getTables()
+
+  if (await writeDbViaRpc(normalized, null)) return
+
+  await clearTable(tables.reportBooks, 'report_id')
+  await clearTable(tables.reports)
+  await clearTable(tables.promoterTerritories, 'agency_record_id')
+  await clearTable(tables.promoterAgencyRecords)
+  await clearTable(tables.promoters)
+  await clearTable(tables.books)
+  await clearTable(tables.schools)
+
+  await insertRows(tables.schools, buildSchoolRows(normalized.schools))
+  await insertRows(tables.books, buildBookRows(normalized.books))
+  await insertRows(tables.promoters, buildPromoterRows(normalized.promoters))
+  await insertRows(tables.promoterAgencyRecords, buildAgencyRecordRows(normalized.promoters))
+  await insertRows(tables.promoterTerritories, buildTerritoryRows(normalized.promoters))
+  await insertRows(tables.reports, buildReportRows(normalized.reports))
+  await insertRows(tables.reportBooks, buildReportBookRows(normalized.reports))
+}
+
+export async function writeDb(data, { previous = DEFAULT_DB } = {}) {
+  const normalized = normalizeDb(data)
+  const previousNormalized = normalizeDb(previous)
+  const tables = getTables()
+
+  if (await writeDbViaRpc(normalized, previousNormalized)) return
+
+  const schoolDiff = diffById(previousNormalized.schools, normalized.schools)
+  const bookDiff = diffById(previousNormalized.books, normalized.books)
+  const promoterDiff = diffById(previousNormalized.promoters, normalized.promoters)
+  const reportDiff = diffById(previousNormalized.reports, normalized.reports)
+
+  const changedPromoterIds = promoterDiff.changed.map((item) => item.id)
+  const changedReportIds = reportDiff.changed.map((item) => item.id)
+
+  await deleteRows(tables.reportBooks, 'report_id', [
+    ...reportDiff.removedIds,
+    ...changedReportIds,
+  ])
+  await deleteRows(tables.reports, 'id', reportDiff.removedIds)
+
+  await deleteRows(tables.promoterAgencyRecords, 'promoter_id', [
+    ...promoterDiff.removedIds,
+    ...changedPromoterIds,
+  ])
+  await deleteRows(tables.promoters, 'id', promoterDiff.removedIds)
+  await deleteRows(tables.books, 'id', bookDiff.removedIds)
+  await deleteRows(tables.schools, 'id', schoolDiff.removedIds)
+
+  if (schoolDiff.changed.length || schoolDiff.removedIds.length) {
+    await upsertRows(tables.schools, buildSchoolRows(normalized.schools))
+  }
+  if (bookDiff.changed.length || bookDiff.removedIds.length) {
+    await upsertRows(tables.books, buildBookRows(normalized.books))
+  }
+  if (promoterDiff.changed.length || promoterDiff.removedIds.length) {
+    await upsertRows(tables.promoters, buildPromoterRows(normalized.promoters))
+  }
+
+  const changedPromoters = pickByIds(normalized.promoters, changedPromoterIds)
+  await insertRows(tables.promoterAgencyRecords, buildAgencyRecordRows(changedPromoters))
+  await insertRows(tables.promoterTerritories, buildTerritoryRows(changedPromoters))
+
+  if (reportDiff.changed.length || reportDiff.removedIds.length) {
+    await upsertRows(tables.reports, buildReportRows(normalized.reports))
+  }
+
+  const changedReports = pickByIds(normalized.reports, changedReportIds)
+  await insertRows(tables.reportBooks, buildReportBookRows(changedReports))
 }
 
 export function createId(prefix) {

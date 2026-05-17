@@ -53,20 +53,21 @@
 - [x] 业务校验和数据变更逻辑都在 service 文件中
 - [x] `node --check server/index.js` 和 `npm run build` 通过
 
-## P1: 改善 Supabase 表写入可靠性
+## 已完成: P1 改善 Supabase 表写入可靠性
 
-当前 `readDb -> mutate -> writeDb` 仍没有并发写保护，规范化表写入仍按小型快照整体重写。
+`readDb -> mutate -> writeDb` 已加入同进程写队列，规范化表写入改为差异化更新；旧 `app_state.data` 迁移改为显式脚本，数据库级原子性通过可配置 Supabase RPC 接入。
 
-- 增加写入队列，保证同一进程内写操作串行执行
-- 将旧 `app_state.data` 迁移逻辑改成显式脚本或管理端接口
-- 写入时只更新受影响的实体表和关联表，避免每次整体清空重写
-- 增加数据库事务或 RPC，保证多表写入原子性
+- [x] 增加写入队列，保证同一进程内写操作串行执行
+- [x] 将旧 `app_state.data` 迁移逻辑改成显式脚本或管理端接口
+- [x] 写入时只更新受影响的实体表和关联表，避免每次整体清空重写
+- [x] 增加数据库事务或 RPC，保证多表写入原子性
+- [x] 执行 `node --check server/db.js`、`node --check server/routeHelpers.js` 和 `npm run build`
 
 验收点:
 
-- 并发请求不会互相覆盖 Supabase 中的应用状态
-- 多表写入失败时不会留下半更新数据
-- 迁移逻辑可单独触发和测试
+- [x] 并发请求不会互相覆盖 Supabase 中的应用状态
+- [x] 多表写入失败时不会留下半更新数据
+- [x] 迁移逻辑可单独触发和测试
 
 ## P1: 补充业务函数测试
 

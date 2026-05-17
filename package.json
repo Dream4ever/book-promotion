@@ -8,6 +8,7 @@
     "dev:web": "vite",
     "dev:api": "node server/index.js",
     "build": "vite build",
+    "migrate:legacy": "node server/scripts/migrateLegacyState.js",
     "start": "node server/index.js"
   },
   "dependencies": {
