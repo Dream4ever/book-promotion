@@ -42,22 +42,36 @@ function setPage(nextPage) {
       共 {{ totalItems }} 条，每页 {{ pageSize }} 条，第 {{ page }} / {{ totalPages }} 页
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="page <= 1" @click="setPage(page - 1)">
+      <UButton
+        icon="i-lucide-chevron-left"
+        color="neutral"
+        variant="soft"
+        size="xs"
+        :disabled="page <= 1"
+        @click="setPage(page - 1)"
+      >
         上一页
-      </button>
-      <button
+      </UButton>
+      <UButton
         v-for="item in visiblePages"
         :key="item"
-        type="button"
-        class="rounded-xl px-3 py-2 text-xs transition"
-        :class="item === page ? 'bg-pine-600 text-white' : 'border border-sand-300 bg-white text-sand-700 hover:bg-sand-50'"
+        size="xs"
+        :color="item === page ? 'primary' : 'neutral'"
+        :variant="item === page ? 'solid' : 'soft'"
         @click="setPage(item)"
       >
         {{ item }}
-      </button>
-      <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="page >= totalPages" @click="setPage(page + 1)">
+      </UButton>
+      <UButton
+        trailing-icon="i-lucide-chevron-right"
+        color="neutral"
+        variant="soft"
+        size="xs"
+        :disabled="page >= totalPages"
+        @click="setPage(page + 1)"
+      >
         下一页
-      </button>
+      </UButton>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import ModalPanel from './ModalPanel.vue'
 import {
   cloneAgencyRecords,
@@ -28,6 +28,16 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'submit'])
+
+const provinceOptions = computed(() => [
+  { label: '请选择省份', value: '' },
+  ...props.provinces.map((province) => ({ label: province, value: province })),
+])
+
+const acceptingOptions = [
+  { label: '接单', value: true },
+  { label: '不接单', value: false },
+]
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -183,21 +193,25 @@ function submit() {
       <p class="mt-2 text-sm text-sand-600">代理配置按年度保存，同一推广商同一年仅保留一条记录。</p>
     </template>
     <div class="grid gap-4">
-      <div v-if="localError.text" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {{ localError.text }}
-      </div>
+      <UAlert
+        v-if="localError.text"
+        color="error"
+        variant="soft"
+        icon="i-lucide-circle-alert"
+        :description="localError.text"
+      />
       <div>
         <label class="label-text">推广商名称</label>
-        <input v-model="form.name" class="field-input" type="text" placeholder="例如：华东教育推广中心" />
+        <UInput v-model="form.name" class="w-full" type="text" placeholder="例如：华东教育推广中心" />
       </div>
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
           <label class="label-text">联系人</label>
-          <input v-model="form.contact" class="field-input" type="text" placeholder="联系人姓名" />
+          <UInput v-model="form.contact" class="w-full" type="text" placeholder="联系人姓名" />
         </div>
         <div>
           <label class="label-text">联系电话</label>
-          <input v-model="form.phone" class="field-input" type="text" placeholder="手机号或座机" />
+          <UInput v-model="form.phone" class="w-full" type="text" placeholder="手机号或座机" />
         </div>
       </div>
       <div class="grid gap-4 rounded-2xl border border-sand-200 bg-sand-50 p-5">
@@ -211,34 +225,28 @@ function submit() {
         <div class="grid gap-4 lg:grid-cols-3">
           <div>
             <label class="label-text">代理年度</label>
-            <input v-model="form.agencyRecordYear" class="field-input" type="number" min="2000" max="2100" placeholder="例如：2026" />
+            <UInput v-model="form.agencyRecordYear" class="w-full" type="number" min="2000" max="2100" placeholder="例如：2026" />
           </div>
           <div>
             <label class="label-text">代理期间</label>
-            <input v-model="form.agencyPeriod" class="field-input" type="text" placeholder="例如：2026.01-2026.12" />
+            <UInput v-model="form.agencyPeriod" class="w-full" type="text" placeholder="例如：2026.01-2026.12" />
           </div>
           <div>
             <label class="label-text">任务量</label>
-            <input v-model="form.workload" class="field-input" type="text" placeholder="例如：年度目标 50 校" />
+            <UInput v-model="form.workload" class="w-full" type="text" placeholder="例如：年度目标 50 校" />
           </div>
         </div>
         <div class="rounded-2xl border border-sand-200 bg-white p-4">
           <div class="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
             <div>
               <label class="label-text">代理省份</label>
-              <select v-model="form.province" class="field-input">
-                <option value="">请选择省份</option>
-                <option v-for="province in provinces" :key="province" :value="province">{{ province }}</option>
-              </select>
+              <USelect v-model="form.province" class="w-full" :items="provinceOptions" />
             </div>
             <div>
               <label class="label-text">是否接单</label>
-              <select v-model="form.accepting" class="field-input">
-                <option :value="true">接单</option>
-                <option :value="false">不接单</option>
-              </select>
+              <USelect v-model="form.accepting" class="w-full" :items="acceptingOptions" />
             </div>
-            <button type="button" class="secondary-button" @click="addTerritory">添加省份</button>
+            <UButton color="neutral" variant="soft" icon="i-lucide-plus" @click="addTerritory">添加省份</UButton>
           </div>
           <div class="mt-4 flex flex-wrap gap-2">
             <div
@@ -247,16 +255,16 @@ function submit() {
               class="inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-2 text-sm text-sand-800"
             >
               <span>{{ territory.province }} / {{ territory.accepting ? '接单' : '不接单' }}</span>
-              <button type="button" class="text-sand-400 transition hover:text-red-600" @click="removeTerritory(territory.province)">删除</button>
+              <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="xs" square @click="removeTerritory(territory.province)" />
             </div>
             <div v-if="!form.territories.length" class="text-sm text-sand-500">当前年度还没有配置代理省份</div>
           </div>
         </div>
         <div class="flex flex-wrap gap-3">
-          <button type="button" class="secondary-button" @click="saveAgencyRecord">
+          <UButton color="neutral" variant="soft" icon="i-lucide-save" @click="saveAgencyRecord">
             {{ form.agencyRecordId ? '保存年度记录' : '加入年度记录' }}
-          </button>
-          <button type="button" class="secondary-button" @click="resetAgencyDraft">清空当前年度</button>
+          </UButton>
+          <UButton color="neutral" variant="soft" icon="i-lucide-eraser" @click="resetAgencyDraft">清空当前年度</UButton>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full text-left text-sm">
@@ -277,8 +285,8 @@ function submit() {
                 <td class="px-3 py-3">{{ record.workload || '-' }}</td>
                 <td class="px-3 py-3">
                   <div class="flex flex-wrap gap-2">
-                    <button type="button" class="secondary-button !px-3 !py-2 !text-xs" @click="editAgencyRecord(record)">编辑</button>
-                    <button type="button" class="danger-button" @click="removeAgencyRecord(record.id)">删除</button>
+                    <UButton size="xs" color="neutral" variant="soft" @click="editAgencyRecord(record)">编辑</UButton>
+                    <UButton size="xs" color="error" variant="soft" @click="removeAgencyRecord(record.id)">删除</UButton>
                   </div>
                 </td>
               </tr>
@@ -291,10 +299,10 @@ function submit() {
       </div>
     </div>
     <template #footer>
-      <button type="button" class="secondary-button" :disabled="busy" @click="emit('close')">取消</button>
-      <button type="button" class="primary-button" :disabled="busy" @click="submit">
+      <UButton color="neutral" variant="soft" :disabled="busy" @click="emit('close')">取消</UButton>
+      <UButton :disabled="busy" @click="submit">
         {{ promoter ? '保存修改' : '确认新增' }}
-      </button>
+      </UButton>
     </template>
   </ModalPanel>
 </template>

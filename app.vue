@@ -3,5 +3,7 @@ import App from './src/App.vue'
 </script>
 
 <template>
-  <App />
+  <UApp>
+    <App />
+  </UApp>
 </template>

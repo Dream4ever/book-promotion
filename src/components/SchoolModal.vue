@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import ModalPanel from './ModalPanel.vue'
 
 const props = defineProps({
@@ -24,6 +24,11 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit'])
 
 const form = reactive({ province: '', name: '' })
+
+const provinceOptions = computed(() => [
+  { label: '请选择省份', value: '' },
+  ...props.provinces.map((province) => ({ label: province, value: province })),
+])
 
 function resetForm() {
   form.province = props.school?.province || ''
@@ -51,21 +56,18 @@ function submit() {
     <div class="grid gap-4">
       <div>
         <label class="label-text">省份</label>
-        <select v-model="form.province" class="field-input">
-          <option value="">请选择省份</option>
-          <option v-for="province in provinces" :key="province" :value="province">{{ province }}</option>
-        </select>
+        <USelect v-model="form.province" class="w-full" :items="provinceOptions" />
       </div>
       <div>
         <label class="label-text">学校名称</label>
-        <input v-model="form.name" class="field-input" type="text" placeholder="例如：杭州第一中学" />
+        <UInput v-model="form.name" class="w-full" type="text" placeholder="例如：杭州第一中学" />
       </div>
     </div>
     <template #footer>
-      <button type="button" class="secondary-button" :disabled="busy" @click="emit('close')">取消</button>
-      <button type="button" class="primary-button" :disabled="busy" @click="submit">
+      <UButton color="neutral" variant="soft" :disabled="busy" @click="emit('close')">取消</UButton>
+      <UButton :disabled="busy" @click="submit">
         {{ school ? '保存修改' : '确认新增' }}
-      </button>
+      </UButton>
     </template>
   </ModalPanel>
 </template>

@@ -76,11 +76,11 @@ function toggleFirstMatch() {
 
 <template>
   <div class="grid gap-3">
-    <input
+    <UInput
       v-model="query"
       type="text"
-      class="field-input"
-      :class="{ 'field-input-error': invalid }"
+      :color="invalid ? 'error' : 'neutral'"
+      :highlight="invalid"
       :placeholder="placeholder"
       :aria-invalid="invalid ? 'true' : 'false'"
       @keydown.enter.prevent="toggleFirstMatch"
@@ -101,7 +101,7 @@ function toggleFirstMatch() {
         :aria-selected="selectedIds.has(option.id)"
         @click="toggleOption(option)"
       >
-        <input type="checkbox" class="mt-1" :checked="selectedIds.has(option.id)" readonly />
+        <UCheckbox class="mt-0.5" :model-value="selectedIds.has(option.id)" readonly />
         <span class="flex flex-col">
           <span class="text-sm font-medium text-sand-900">{{ option.label }}</span>
           <span v-if="option.meta" class="mt-1 text-xs text-sand-500">{{ option.meta }}</span>
@@ -114,16 +114,16 @@ function toggleFirstMatch() {
     </div>
 
     <div class="flex flex-wrap gap-2">
-      <span
+      <UBadge
         v-for="option in selectedOptions"
         :key="option.id"
-        class="inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-2 text-sm text-sand-800"
+        color="neutral"
+        variant="soft"
+        class="gap-2 px-3 py-2"
       >
         {{ option.label }}
-        <button type="button" class="text-sand-400 transition hover:text-red-600" @click="removeOption(option.id)">
-          删除
-        </button>
-      </span>
+        <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="xs" square @click="removeOption(option.id)" />
+      </UBadge>
       <span v-if="!selectedOptions.length" class="text-sm text-sand-500">尚未选择书目</span>
     </div>
   </div>

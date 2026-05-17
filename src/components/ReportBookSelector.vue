@@ -42,20 +42,18 @@ const activeMode = computed(() => props.modes.find((mode) => mode.key === props.
       :class="{ 'border-red-300 bg-red-50/40': bookIdError || bookIdsError }"
     >
       <div class="flex flex-col gap-2 sm:flex-row" role="tablist" aria-label="书目选择方式">
-        <button
+        <UButton
           v-for="mode in modes"
           :key="mode.key"
-          type="button"
-          class="flex-1 rounded-xl border px-3 py-3 text-left text-sm font-medium transition"
-          :class="bookMode === mode.key
-            ? 'border-pine-600 bg-pine-600 text-white shadow-sm'
-            : 'border-sand-200 bg-white text-sand-700 hover:border-sand-300 hover:bg-sand-100'"
+          class="flex-1 justify-start px-3 py-3"
+          :color="bookMode === mode.key ? 'primary' : 'neutral'"
+          :variant="bookMode === mode.key ? 'solid' : 'soft'"
           role="tab"
           :aria-selected="bookMode === mode.key"
           @click="emit('select-mode', mode.key)"
         >
           {{ mode.label }}
-        </button>
+        </UButton>
       </div>
 
       <div class="rounded-xl bg-white px-3 py-3">

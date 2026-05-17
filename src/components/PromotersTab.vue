@@ -76,7 +76,7 @@ const emit = defineEmits([
         <thead class="border-b border-sand-200 text-sand-500">
           <tr>
             <th class="px-3 py-3 font-medium">
-              <input type="checkbox" :checked="areAllSelected('promoters', pageRows)" @change="emit('toggle-all', $event.target.checked)" />
+              <UCheckbox :model-value="areAllSelected('promoters', pageRows)" @update:model-value="emit('toggle-all', $event)" />
             </th>
             <th class="px-3 py-3 font-medium">推广商</th>
             <th class="px-3 py-3 font-medium">联系人</th>
@@ -90,7 +90,7 @@ const emit = defineEmits([
         <tbody>
           <tr v-for="promoter in pageRows" :key="promoter.id" class="border-b border-sand-100 align-top">
             <td class="px-3 py-3">
-              <input type="checkbox" :checked="isSelected('promoters', promoter.id)" @change="emit('toggle-row', { id: promoter.id, checked: $event.target.checked })" />
+              <UCheckbox :model-value="isSelected('promoters', promoter.id)" @update:model-value="emit('toggle-row', { id: promoter.id, checked: $event })" />
             </td>
             <td class="px-3 py-3 font-medium text-sand-900">{{ promoter.name }}</td>
             <td class="px-3 py-3">{{ promoter.contact || '-' }}</td>
@@ -102,8 +102,8 @@ const emit = defineEmits([
             <td class="px-3 py-3">{{ promoter.agencyRecordCount }}</td>
             <td class="px-3 py-3">
               <div class="flex flex-wrap gap-2">
-                <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="emit('edit', promoter)">编辑</button>
-                <button type="button" class="danger-button" :disabled="busy" @click="emit('delete', promoter)">删除</button>
+                <UButton size="xs" color="neutral" variant="soft" :disabled="busy" @click="emit('edit', promoter)">编辑</UButton>
+                <UButton size="xs" color="error" variant="soft" :disabled="busy" @click="emit('delete', promoter)">删除</UButton>
               </div>
             </td>
           </tr>

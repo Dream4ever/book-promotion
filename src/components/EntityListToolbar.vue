@@ -54,22 +54,24 @@ const emit = defineEmits([
       <p v-if="description" class="mt-1 text-sm text-sand-600">{{ description }}</p>
     </div>
     <div class="flex flex-wrap gap-3">
-      <input
-        :value="modelValue"
-        class="field-input"
+      <UInput
+        :model-value="modelValue"
+        icon="i-lucide-search"
+        class="min-w-0"
         :class="searchWidthClass"
-        type="text"
         :placeholder="searchPlaceholder"
-        @input="emit('update:modelValue', $event.target.value)"
+        @update:model-value="emit('update:modelValue', $event)"
       />
-      <button type="button" class="primary-button" :disabled="busy" @click="emit('create')">{{ createLabel }}</button>
-      <label v-if="importEnabled" class="secondary-button cursor-pointer">
+      <UButton icon="i-lucide-plus" :disabled="busy" @click="emit('create')">
+        {{ createLabel }}
+      </UButton>
+      <UButton v-if="importEnabled" as="label" icon="i-lucide-upload" color="neutral" variant="soft" class="cursor-pointer">
         Excel 导入
         <input class="hidden" type="file" accept=".xlsx,.xls,.csv" @change="emit('import', $event)" />
-      </label>
-      <button type="button" class="secondary-button" @click="emit('export', false)">导出筛选结果</button>
-      <button type="button" class="secondary-button" :disabled="!selectedCount" @click="emit('export', true)">导出已选</button>
-      <button type="button" class="danger-button" :disabled="busy || !selectedCount" @click="emit('batch-delete')">批量删除</button>
+      </UButton>
+      <UButton icon="i-lucide-download" color="neutral" variant="soft" @click="emit('export', false)">导出筛选结果</UButton>
+      <UButton icon="i-lucide-check-check" color="neutral" variant="soft" :disabled="!selectedCount" @click="emit('export', true)">导出已选</UButton>
+      <UButton icon="i-lucide-trash-2" color="error" variant="soft" :disabled="busy || !selectedCount" @click="emit('batch-delete')">批量删除</UButton>
     </div>
   </div>
 </template>

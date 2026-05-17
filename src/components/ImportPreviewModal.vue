@@ -60,8 +60,8 @@ function formatPreviewValue(kind, row, key) {
       </tbody>
     </table>
     <template #footer>
-      <button type="button" class="secondary-button" :disabled="busy" @click="emit('close')">取消</button>
-      <button type="button" class="primary-button" :disabled="busy" @click="emit('confirm')">确认导入</button>
+      <UButton color="neutral" variant="soft" :disabled="busy" @click="emit('close')">取消</UButton>
+      <UButton icon="i-lucide-upload" :disabled="busy" @click="emit('confirm')">确认导入</UButton>
     </template>
   </ModalPanel>
 </template>

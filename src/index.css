@@ -1,6 +1,26 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+  --font-sans: "IBM Plex Sans SC", "Microsoft YaHei", sans-serif;
+
+  --color-sand-50: #f8f4ec;
+  --color-sand-100: #efe5d2;
+  --color-sand-200: #e5d2b0;
+  --color-sand-300: #d6ba87;
+  --color-sand-400: #c89b5b;
+  --color-sand-500: #b67c3a;
+  --color-sand-600: #945f27;
+  --color-sand-700: #72471d;
+  --color-sand-800: #4f3217;
+  --color-sand-900: #2c1b0f;
+
+  --color-pine-500: #2d5f4d;
+  --color-pine-600: #214b3c;
+  --color-pine-700: #19392e;
+
+  --shadow-panel: 0 20px 60px rgba(56, 34, 12, 0.12);
+}
 
 body {
   min-height: 100vh;

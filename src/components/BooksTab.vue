@@ -75,7 +75,7 @@ const emit = defineEmits([
         <thead class="border-b border-sand-200 text-sand-500">
           <tr>
             <th class="px-3 py-3 font-medium">
-              <input type="checkbox" :checked="areAllSelected('books', pageRows)" @change="emit('toggle-all', $event.target.checked)" />
+              <UCheckbox :model-value="areAllSelected('books', pageRows)" @update:model-value="emit('toggle-all', $event)" />
             </th>
             <th class="px-3 py-3 font-medium">ISBN</th>
             <th class="px-3 py-3 font-medium">书名</th>
@@ -86,15 +86,15 @@ const emit = defineEmits([
         <tbody>
           <tr v-for="book in pageRows" :key="book.id" class="border-b border-sand-100">
             <td class="px-3 py-3">
-              <input type="checkbox" :checked="isSelected('books', book.id)" @change="emit('toggle-row', { id: book.id, checked: $event.target.checked })" />
+              <UCheckbox :model-value="isSelected('books', book.id)" @update:model-value="emit('toggle-row', { id: book.id, checked: $event })" />
             </td>
             <td class="px-3 py-3">{{ book.isbn }}</td>
             <td class="px-3 py-3 text-sand-900">{{ book.title }}</td>
             <td class="px-3 py-3">￥{{ Number(book.price || 0).toFixed(2) }}</td>
             <td class="px-3 py-3">
               <div class="flex flex-wrap gap-2">
-                <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="emit('edit', book)">编辑</button>
-                <button type="button" class="danger-button" :disabled="busy" @click="emit('delete', book)">删除</button>
+                <UButton size="xs" color="neutral" variant="soft" :disabled="busy" @click="emit('edit', book)">编辑</UButton>
+                <UButton size="xs" color="error" variant="soft" :disabled="busy" @click="emit('delete', book)">删除</UButton>
               </div>
             </td>
           </tr>

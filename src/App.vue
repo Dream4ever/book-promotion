@@ -432,8 +432,8 @@ onMounted(async () => {
 
 <template>
   <div class="mx-auto min-h-screen max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <section class="panel p-6 lg:p-8">
-      <p class="tag">Supabase 持久化 / 搜索 / 分页 / 批量导出</p>
+    <UCard :ui="{ body: 'p-6 lg:p-8' }">
+      <UBadge color="primary" variant="soft">Supabase 持久化 / 搜索 / 分页 / 批量导出</UBadge>
       <h1 class="mt-4 text-3xl font-semibold tracking-tight text-sand-900 sm:text-4xl">
         出版社推广商报备系统
       </h1>
@@ -442,26 +442,27 @@ onMounted(async () => {
         同一个学校的同一个书目在同一个学期只能由一个推广商报备。
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
-        <button
+        <UButton
           v-for="tab in tabs"
           :key="tab.key"
-          type="button"
-          class="rounded-full px-4 py-2 text-sm transition"
-          :class="activeTab === tab.key ? 'bg-pine-600 text-white' : 'bg-white text-sand-700 hover:bg-sand-100'"
+          :color="activeTab === tab.key ? 'primary' : 'neutral'"
+          :variant="activeTab === tab.key ? 'solid' : 'soft'"
+          size="sm"
           @click="activeTab = tab.key"
         >
           {{ tab.label }}
-        </button>
+        </UButton>
       </div>
-    </section>
+    </UCard>
 
-    <section
+    <UAlert
       v-if="message.text"
-      class="mt-6 rounded-2xl border px-4 py-3 text-sm"
-      :class="message.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-pine-200 bg-pine-50 text-pine-700'"
-    >
-      {{ message.text }}
-    </section>
+      class="mt-6"
+      :color="message.type === 'error' ? 'error' : 'success'"
+      :variant="'soft'"
+      :icon="message.type === 'error' ? 'i-lucide-circle-alert' : 'i-lucide-circle-check'"
+      :description="message.text"
+    />
 
     <SchoolsTab
       v-if="activeTab === 'schools'"
@@ -612,7 +613,7 @@ onMounted(async () => {
     <ModalPanel :visible="modal.reportError" :title="reportError.title" max-width-class="max-w-md" @close="closeReportError">
       <p class="whitespace-pre-line text-sm leading-6 text-red-700">{{ reportError.text }}</p>
       <template #footer>
-        <button type="button" class="primary-button" @click="closeReportError">知道了</button>
+        <UButton @click="closeReportError">知道了</UButton>
       </template>
     </ModalPanel>
 

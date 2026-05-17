@@ -276,10 +276,11 @@ function submit() {
     <div class="grid gap-4">
       <div>
         <label class="label-text">报备学期</label>
-        <input
+        <UInput
           v-model="form.term"
-          class="field-input"
-          :class="{ 'field-input-error': errors.term }"
+          class="w-full"
+          :color="errors.term ? 'error' : 'neutral'"
+          :highlight="Boolean(errors.term)"
           type="text"
           list="report-term-options"
           placeholder="例如：2026年春 或 2026年秋"
@@ -324,23 +325,31 @@ function submit() {
       </div>
       <div>
         <label class="label-text">备注</label>
-        <textarea v-model="form.note" class="field-input min-h-24" placeholder="可选"></textarea>
+        <UTextarea v-model="form.note" class="w-full" :rows="4" placeholder="可选" />
       </div>
-      <div v-if="reportConflictDetails.length" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        <p>所选书目中已有 {{ reportConflictDetails.length }} 本被报备，系统会阻止重复提交。</p>
-        <ul class="mt-2 list-disc space-y-1 pl-5">
-          <li v-for="item in reportConflictDetails" :key="item.key">
-            <span class="font-semibold">{{ item.bookLabel }}</span>
-            已在 {{ item.term }}，{{ item.schoolLabel }} 由 {{ item.promoterLabel }} 报备过。
-          </li>
-        </ul>
-      </div>
+      <UAlert
+        v-if="reportConflictDetails.length"
+        color="warning"
+        variant="soft"
+        icon="i-lucide-triangle-alert"
+        title="存在重复报备"
+      >
+        <template #description>
+          <p>所选书目中已有 {{ reportConflictDetails.length }} 本被报备，系统会阻止重复提交。</p>
+          <ul class="mt-2 list-disc space-y-1 pl-5">
+            <li v-for="item in reportConflictDetails" :key="item.key">
+              <span class="font-semibold">{{ item.bookLabel }}</span>
+              已在 {{ item.term }}，{{ item.schoolLabel }} 由 {{ item.promoterLabel }} 报备过。
+            </li>
+          </ul>
+        </template>
+      </UAlert>
     </div>
     <template #footer>
-      <button type="button" class="secondary-button" :disabled="busy" @click="emit('close')">取消</button>
-      <button type="button" class="primary-button" :disabled="busy" @click="submit">
+      <UButton color="neutral" variant="soft" :disabled="busy" @click="emit('close')">取消</UButton>
+      <UButton :disabled="busy" @click="submit">
         {{ report ? '保存修改' : '确认新增' }}
-      </button>
+      </UButton>
     </template>
   </ModalPanel>
 </template>

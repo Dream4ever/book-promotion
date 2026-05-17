@@ -56,8 +56,8 @@ const emit = defineEmits(['close', 'export'])
       </table>
     </div>
     <template #footer>
-      <button type="button" class="secondary-button" @click="emit('close')">关闭</button>
-      <button type="button" class="primary-button" @click="emit('export')">导出明细</button>
+      <UButton color="neutral" variant="soft" @click="emit('close')">关闭</UButton>
+      <UButton icon="i-lucide-download" @click="emit('export')">导出明细</UButton>
     </template>
   </ModalPanel>
 </template>

@@ -138,11 +138,12 @@ onBeforeUnmount(() => {
 <template>
   <div ref="rootRef" class="relative">
     <div class="relative">
-      <input
+      <UInput
         v-model="query"
         type="text"
-        class="field-input pr-20"
-        :class="{ 'field-input-error': invalid }"
+        class="w-full"
+        :color="invalid ? 'error' : 'neutral'"
+        :highlight="invalid"
         :placeholder="placeholder"
         :aria-invalid="invalid ? 'true' : 'false'"
         :aria-expanded="dropdownOpen ? 'true' : 'false'"
@@ -152,14 +153,15 @@ onBeforeUnmount(() => {
         @keydown="handleKeydown"
       />
       <div class="absolute inset-y-0 right-3 flex items-center gap-2">
-        <button
+        <UButton
           v-if="modelValue"
-          type="button"
-          class="text-xs text-sand-500 transition hover:text-sand-800"
+          size="xs"
+          color="neutral"
+          variant="ghost"
           @click="clearValue"
         >
           清空
-        </button>
+        </UButton>
       </div>
     </div>
 
@@ -174,7 +176,7 @@ onBeforeUnmount(() => {
         v-for="(option, index) in panelState.kind === 'ready' ? filteredOptions : []"
         :key="option.id"
         type="button"
-        class="flex w-full flex-col rounded-xl px-3 py-3 text-left transition hover:bg-sand-50"
+        class="flex w-full flex-col rounded-lg px-3 py-3 text-left transition hover:bg-sand-50"
         :class="{ 'bg-sand-50': index === activeIndex }"
         role="option"
         :aria-selected="modelValue === option.id"
