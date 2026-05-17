@@ -36,22 +36,22 @@
 - [x] 弹窗组件只通过 props 接收初始数据，通过 emits 通知保存/关闭
 - [x] 新增和编辑流程行为不变
 
-## P1: 继续拆分后端 service 层
+## 已完成: P1 继续拆分后端 service 层
 
-`server/index.js` 已集中数据库路由流程，但业务函数仍在路由文件中。
+`server/index.js` 只保留 Express 初始化、路由声明、静态资源服务和响应委托，业务校验和数据变更逻辑已拆到 `server/services/`。
 
-- 新增 `server/services/schoolService.js`
-- 新增 `server/services/bookService.js`
-- 新增 `server/services/promoterService.js`
-- 新增 `server/services/reportService.js`
-- 新增 `server/services/deleteService.js`
-- 路由层只负责读取请求参数、调用 service、返回响应
+- [x] 新增 `server/services/schoolService.js`
+- [x] 新增 `server/services/bookService.js`
+- [x] 新增 `server/services/promoterService.js`
+- [x] 新增 `server/services/reportService.js`
+- [x] 新增 `server/services/deleteService.js`
+- [x] 路由层只负责读取请求参数、调用 service、返回响应
 
 验收点:
 
-- `server/index.js` 只保留 Express 初始化、路由声明、静态资源服务
-- 业务校验和数据变更逻辑都在 service 文件中
-- `node --check server/index.js` 和 `npm run build` 通过
+- [x] `server/index.js` 只保留 Express 初始化、路由声明、静态资源服务
+- [x] 业务校验和数据变更逻辑都在 service 文件中
+- [x] `node --check server/index.js` 和 `npm run build` 通过
 
 ## P1: 改善 Supabase 表写入可靠性
 
