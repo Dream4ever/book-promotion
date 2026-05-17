@@ -11,7 +11,7 @@ import {
   resolveReportExcludedBookIds,
   resolveReportSpecificBookIds,
   resolveReportTerm,
-} from '../../shared/reportRules.js'
+} from '#shared/reportRules.js'
 
 const props = defineProps({
   visible: {

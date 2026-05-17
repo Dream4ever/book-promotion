@@ -1,4 +1,4 @@
-import { resolveReportSavedBookIds } from '../../shared/reportRules.js'
+import { resolveReportSavedBookIds } from '#shared/reportRules.js'
 
 export function getRowsByKind(db, kind) {
   if (kind === 'schools') return db.schools

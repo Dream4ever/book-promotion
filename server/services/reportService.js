@@ -3,7 +3,7 @@ import {
   findReportConflicts,
   normalizeReportPayload,
   resolveReportTerm,
-} from '../../shared/reportRules.js'
+} from '#shared/reportRules.js'
 
 function ensureReportRefs(db, payload) {
   const school = db.schools.find((item) => item.id === payload.schoolId)

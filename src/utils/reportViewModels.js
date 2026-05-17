@@ -4,7 +4,7 @@ import {
   resolveReportSavedBookIds,
   resolveReportSpecificBookIds,
   resolveReportTerm,
-} from '../../shared/reportRules.js'
+} from '#shared/reportRules.js'
 
 export function formatBookOption(book) {
   return book ? `${book.title} (${book.isbn})` : '书目已删除'

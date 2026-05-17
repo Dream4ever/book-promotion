@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
-import { inferReportTerm, normalizeReportPayload } from '../shared/reportRules.js'
+import { inferReportTerm, normalizeReportPayload } from '#shared/reportRules.js'
 import { diffById } from './dbDiff.js'
 import {
   buildAgencyRecordRows,

@@ -1,6 +1,6 @@
 # 出版社推广商报备系统
 
-本项目采用 `Vue 3 + Tailwind CSS v3` 构建前端界面，配套本地 Node API 将数据保存到 Supabase。
+本项目采用 `Nuxt.js + Vue 3 + Tailwind CSS v3` 构建全栈应用，通过 Nuxt BFF 接口将数据保存到 Supabase。
 
 ## 已实现功能
 
@@ -27,9 +27,16 @@ npm install
 npm run dev
 ```
 
-前端默认地址：`http://localhost:5173`
+本地默认地址：`http://localhost:3000`
 
-本地 API 默认地址：`http://localhost:3001`
+本地 API 与前端同源，接口路径为 `/api/*`。
+
+生产构建：
+
+```bash
+npm run build
+npm start
+```
 
 ## Excel 字段建议
 

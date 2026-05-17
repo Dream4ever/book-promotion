@@ -1,5 +1,5 @@
 import { computed, reactive } from 'vue'
-import { reportMatchesBook } from '../../shared/reportRules.js'
+import { reportMatchesBook } from '#shared/reportRules.js'
 
 function summarizeRows(rows, labelGetter, labelName) {
   const map = new Map()

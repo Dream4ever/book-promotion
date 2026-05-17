@@ -17,11 +17,10 @@ This project is a Vue 3 + Vite frontend with a small Express API backed by Supab
 ## Build, Test, and Development Commands
 
 - `npm install`: install frontend and server dependencies.
-- `npm run dev`: start Vite and the API server together.
-- `npm run dev:web`: start only the Vite dev server on port `5173`.
-- `npm run dev:api`: start only the API server on port `3001`.
-- `npm run build`: create the production frontend bundle in `dist/`.
-- `npm start`: run the API server, which also serves `dist/`.
+- `npm run dev`: start the Nuxt app and BFF API together.
+- `npm run build`: create the Nuxt production bundle.
+- `npm start`: run the built Nuxt server from `.output/`.
+- `npm run preview`: preview the Nuxt production build.
 
 There is currently no test script. Add one before introducing test files.
 
@@ -37,7 +36,7 @@ Testing is not yet configured. When adding tests, prefer Vitest because the proj
 
 - `shared/reportRules.js`
 - `src/utils/importers.js`
-- backend service logic after it is split from `server/index.js`
+- backend service logic used by `server/api/`
 
 Use names like `reportRules.test.js` or `importers.test.js`.
 
