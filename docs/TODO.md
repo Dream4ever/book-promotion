@@ -69,20 +69,21 @@
 - [x] 多表写入失败时不会留下半更新数据
 - [x] 迁移逻辑可单独触发和测试
 
-## P1: 补充业务函数测试
+## 已完成: P1 补充业务函数测试
 
-项目目前没有测试脚本，重构继续深入前应先覆盖高风险纯函数。
+已引入 Vitest，新增报备规则、导入字段映射、删除级联、report service 新增/修改/冲突判断测试。
 
-- 引入 Vitest
-- 测试 `shared/reportRules.js`
-- 测试 `src/utils/importers.js`
-- 测试后端删除级联逻辑
-- 测试 report service 的新增、修改、冲突判断
+- [x] 引入 Vitest
+- [x] 测试 `shared/reportRules.js`
+- [x] 测试 `src/utils/importers.js`
+- [x] 测试后端删除级联逻辑
+- [x] 测试 report service 的新增、修改、冲突判断
+- [x] 执行 `npm test` 和 `npm run build`
 
 验收点:
 
-- `npm test` 可运行
-- 报备冲突、书目模式、导入字段映射、级联删除都有覆盖
+- [x] `npm test` 可运行
+- [x] 报备冲突、书目模式、导入字段映射、级联删除都有覆盖
 
 ## P2: 统一前端 API 调用错误处理
 
