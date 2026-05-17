@@ -34,11 +34,11 @@ const CURRENT_YEAR = new Date().getFullYear()
 const store = useRegistryStore()
 
 const tabs = [
-  { key: 'schools', label: '学校名单' },
-  { key: 'books', label: '书目名单' },
-  { key: 'promoters', label: '推广商名单' },
-  { key: 'reports', label: '报备管理' },
-  { key: 'analytics', label: '统计报表' },
+  { value: 'schools', label: '学校名单' },
+  { value: 'books', label: '书目名单' },
+  { value: 'promoters', label: '推广商名单' },
+  { value: 'reports', label: '报备管理' },
+  { value: 'analytics', label: '统计报表' },
 ]
 
 const reportBookModeTabs = [
@@ -441,18 +441,18 @@ onMounted(async () => {
         所有数据统一保存到 Supabase。
         同一个学校的同一个书目在同一个学期只能由一个推广商报备。
       </p>
-      <div class="mt-6 flex flex-wrap gap-3">
-        <UButton
-          v-for="tab in tabs"
-          :key="tab.key"
-          :color="activeTab === tab.key ? 'primary' : 'neutral'"
-          :variant="activeTab === tab.key ? 'solid' : 'soft'"
-          size="sm"
-          @click="activeTab = tab.key"
-        >
-          {{ tab.label }}
-        </UButton>
-      </div>
+      <UTabs
+        v-model="activeTab"
+        class="mt-6"
+        :items="tabs"
+        :content="false"
+        size="sm"
+        variant="pill"
+        :ui="{
+          list: 'flex-wrap gap-2',
+          trigger: 'grow-0 justify-center whitespace-nowrap',
+        }"
+      />
     </UCard>
 
     <UAlert
