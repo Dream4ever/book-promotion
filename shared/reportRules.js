@@ -116,6 +116,25 @@ export function hasReportConflict(report, normalized, currentId = '', books = []
   return normalizedBookIds.some((bookId) => reportBookIds.includes(bookId))
 }
 
+export function findReportConflicts(reports = [], normalized, currentId = '', books = []) {
+  const normalizedBookIds = resolveReportSavedBookIds(normalized, books)
+
+  return reports
+    .filter((report) => {
+      if (report?.id === currentId) return false
+      if (report?.schoolId !== normalized.schoolId) return false
+      return resolveReportTerm(report) === normalized.term
+    })
+    .map((report) => {
+      const reportBookIdSet = new Set(resolveReportSavedBookIds(report, books))
+      return {
+        report,
+        bookIds: normalizedBookIds.filter((bookId) => reportBookIdSet.has(bookId)),
+      }
+    })
+    .filter((item) => item.bookIds.length)
+}
+
 export function reportMatchesBook(report, bookId) {
   const bookMode = resolveReportBookMode(report)
   const savedBookIds = resolveReportSavedBookIds(report)

@@ -5,9 +5,10 @@ import { fileURLToPath } from 'url'
 import { createId, normalizeTerritories, normalizeText } from './db.js'
 import { runDbMutation, runDbRead } from './routeHelpers.js'
 import {
-  hasReportConflict,
+  findReportConflicts,
   normalizeReportPayload,
   resolveReportSavedBookIds,
+  resolveReportTerm,
 } from '../shared/reportRules.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -267,14 +268,37 @@ function validateReportPayload(normalized) {
   }
 }
 
+function formatBookLabel(bookId, books) {
+  const book = books.find((item) => item.id === bookId)
+  if (!book) return '书目已删除'
+  return book.isbn ? `${book.title}（${book.isbn}）` : book.title
+}
+
+function buildReportConflictMessage(db, conflicts, normalized) {
+  const school = db.schools.find((item) => item.id === normalized.schoolId)
+  const schoolLabel = school ? `${school.province} / ${school.name}` : '当前学校'
+  const lines = conflicts.flatMap(({ report, bookIds }) => {
+    const term = resolveReportTerm(report)
+    return bookIds.map(
+      (bookId) => `- ${formatBookLabel(bookId, db.books)}：已在 ${term}，${schoolLabel} 报备过`,
+    )
+  })
+
+  return [
+    '该学校当前学期已有图书被报备，不允许重复报备同一本书。',
+    '重复书目如下：',
+    ...lines,
+  ].join('\n')
+}
+
 function createReport(db, payload) {
   const normalized = normalizeReportPayload(payload, db.books)
   validateReportPayload(normalized)
   ensureReportRefs(db, normalized)
 
-  const existing = db.reports.find((item) => hasReportConflict(item, normalized, '', db.books))
-  if (existing) {
-    throw new Error('该学校当前学期已有图书被报备，不允许重复报备同一本书。')
+  const conflicts = findReportConflicts(db.reports, normalized, '', db.books)
+  if (conflicts.length) {
+    throw new Error(buildReportConflictMessage(db, conflicts, normalized))
   }
 
   const created = {
@@ -297,9 +321,9 @@ function updateReport(db, id, payload) {
 
   ensureReportRefs(db, normalized)
 
-  const duplicate = db.reports.find((item) => hasReportConflict(item, normalized, id, db.books))
-  if (duplicate) {
-    throw new Error('该学校当前学期已有图书被报备，不允许重复报备同一本书。')
+  const conflicts = findReportConflicts(db.reports, normalized, id, db.books)
+  if (conflicts.length) {
+    throw new Error(buildReportConflictMessage(db, conflicts, normalized))
   }
 
   db.reports[index] = {

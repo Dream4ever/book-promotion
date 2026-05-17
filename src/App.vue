@@ -16,7 +16,7 @@ import { useRowSelection } from './composables/useRowSelection'
 import { PROVINCES } from './constants/provinces'
 import { api } from './utils/api'
 import {
-  hasReportConflict,
+  findReportConflicts,
   normalizeReportPayload,
   normalizeTermText,
   reportMatchesBook,
@@ -293,8 +293,23 @@ const bookPageRows = pageRows.books
 const promoterPageRows = pageRows.promoters
 const reportPageRows = pageRows.reports
 
-const conflictRecord = computed(() =>
-  store.state.reports.find((item) => isReportConflict(item)),
+const reportConflictDetails = computed(() =>
+  findReportConflicts(
+    store.state.reports,
+    buildReportConflictPayload(),
+    editing.reportId,
+    store.state.books,
+  ).flatMap(({ report, bookIds }) => {
+    const school = store.state.schools.find((item) => item.id === report.schoolId)
+    const promoter = store.state.promoters.find((item) => item.id === report.promoterId)
+    return bookIds.map((bookId) => ({
+      key: `${report.id}-${bookId}`,
+      bookLabel: formatBookById(bookId),
+      term: resolveReportTerm(report),
+      schoolLabel: school ? `${school.province} / ${school.name}` : '学校已删除',
+      promoterLabel: promoter?.name || '其他推广商',
+    }))
+  }),
 )
 
 const analyticsReportRows = computed(() =>
@@ -703,6 +718,13 @@ async function submitReport() {
     return
   }
   const payload = buildReportFormPayload()
+  const conflicts = reportConflictDetails.value
+  if (conflicts.length) {
+    message.text = ''
+    showReportError(formatReportConflictMessage(conflicts), isEditing ? '修改报备失败' : '新增报备失败')
+    return
+  }
+
   busy.value = true
   closeReportError()
   try {
@@ -799,6 +821,21 @@ function formatBookOption(book) {
   return book ? `${book.title} (${book.isbn})` : '书目已删除'
 }
 
+function formatBookById(bookId) {
+  return formatBookOption(store.state.books.find((book) => book.id === bookId))
+}
+
+function formatReportConflictMessage(conflicts) {
+  return [
+    '该学校当前学期已有图书被报备，不允许重复报备同一本书。',
+    '重复书目如下：',
+    ...conflicts.map(
+      (item) =>
+        `- ${item.bookLabel}：已在 ${item.term}，${item.schoolLabel} 由 ${item.promoterLabel} 报备过`,
+    ),
+  ].join('\n')
+}
+
 function formatReportBookLabel(bookMode, specificBooks, excludedBooks) {
   if (bookMode === 'all') return '所有图书'
   if (bookMode === 'exclude') {
@@ -818,10 +855,6 @@ function formatReportBookSearchText(bookMode, specificBooks, excludedBooks) {
   return specificBooks.length
     ? `指定图书 ${specificBooks.map((book) => `${book.title} ${book.isbn}`).join(' ')}`
     : '书目已删除'
-}
-
-function isReportConflict(report) {
-  return hasReportConflict(report, buildReportConflictPayload(), editing.reportId, store.state.books)
 }
 
 function buildReportFormPayload() {
@@ -1269,10 +1302,14 @@ onMounted(async () => {
           <label class="label-text">备注</label>
           <textarea v-model="reportForm.note" class="field-input min-h-24" placeholder="可选"></textarea>
         </div>
-        <div v-if="conflictRecord" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {{ conflictRecord.term }} 的所选书目中已有图书被
-          <span class="font-semibold">{{ promoterOptions.find((item) => item.id === conflictRecord.promoterId)?.label || '其他推广商' }}</span>
-          报备，系统会阻止重复提交。
+        <div v-if="reportConflictDetails.length" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p>所选书目中已有 {{ reportConflictDetails.length }} 本被报备，系统会阻止重复提交。</p>
+          <ul class="mt-2 list-disc space-y-1 pl-5">
+            <li v-for="item in reportConflictDetails" :key="item.key">
+              <span class="font-semibold">{{ item.bookLabel }}</span>
+              已在 {{ item.term }}，{{ item.schoolLabel }} 由 {{ item.promoterLabel }} 报备过。
+            </li>
+          </ul>
         </div>
       </div>
       <template #footer>
@@ -1282,7 +1319,7 @@ onMounted(async () => {
     </ModalPanel>
 
     <ModalPanel :visible="modal.reportError" :title="reportError.title" max-width-class="max-w-md" @close="closeReportError">
-      <p class="text-sm leading-6 text-red-700">{{ reportError.text }}</p>
+      <p class="whitespace-pre-line text-sm leading-6 text-red-700">{{ reportError.text }}</p>
       <template #footer>
         <button type="button" class="primary-button" @click="closeReportError">知道了</button>
       </template>
