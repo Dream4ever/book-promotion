@@ -679,7 +679,7 @@ function submitSchool() {
   const isEditing = Boolean(editing.schoolId)
   runAction(
     () => (isEditing ? api.updateSchool(editing.schoolId, schoolForm) : api.createSchool(schoolForm)),
-    isEditing ? '学校已修改，并同步写入 JSON 文件。' : '学校名单已写入项目目录 JSON 文件。',
+    isEditing ? '学校已修改，并同步写入 Supabase。' : '学校名单已写入 Supabase。',
     closeSchoolModal,
   )
 }
@@ -688,7 +688,7 @@ function submitBook() {
   const isEditing = Boolean(editing.bookId)
   runAction(
     () => (isEditing ? api.updateBook(editing.bookId, bookForm) : api.createBook(bookForm)),
-    isEditing ? '书目已修改，并同步写入 JSON 文件。' : '书目名单已写入项目目录 JSON 文件。',
+    isEditing ? '书目已修改，并同步写入 Supabase。' : '书目名单已写入 Supabase。',
     closeBookModal,
   )
 }
@@ -704,7 +704,7 @@ function submitPromoter() {
       isEditing
         ? api.updatePromoter(editing.promoterId, promoterForm)
         : api.createPromoter(promoterForm),
-    isEditing ? '推广商已修改，并同步写入 JSON 文件。' : '推广商名单已写入项目目录 JSON 文件。',
+    isEditing ? '推广商已修改，并同步写入 Supabase。' : '推广商名单已写入 Supabase。',
     closePromoterModal,
   )
 }
@@ -733,7 +733,7 @@ async function submitReport() {
     clearAllSelections()
     closeReportModal()
     setMessage(
-      isEditing ? '报备记录已修改，并同步写入 JSON 文件。' : '报备成功，记录已写入项目目录 JSON 文件。',
+      isEditing ? '报备记录已修改，并同步写入 Supabase。' : '报备成功，记录已写入 Supabase。',
     )
   } catch (error) {
     showReportError(error.message, isEditing ? '修改报备失败' : '新增报备失败')
@@ -751,25 +751,25 @@ function batchDelete(kind) {
 
   runAction(
     () => api.batchDelete(kind, ids),
-    `已批量删除 ${ids.length} 条${kindLabels[kind]}数据，并同步更新 JSON 文件。`,
+    `已批量删除 ${ids.length} 条${kindLabels[kind]}数据，并同步更新 Supabase。`,
     () => clearSelections(kind),
   )
 }
 
 function deleteSchool(school) {
-  runAction(() => api.deleteSchool(school.id), '学校已删除，并同步更新 JSON 文件。')
+  runAction(() => api.deleteSchool(school.id), '学校已删除，并同步更新 Supabase。')
 }
 
 function deleteBook(book) {
-  runAction(() => api.deleteBook(book.id), '书目已删除，并同步更新 JSON 文件。')
+  runAction(() => api.deleteBook(book.id), '书目已删除，并同步更新 Supabase。')
 }
 
 function deletePromoter(promoter) {
-  runAction(() => api.deletePromoter(promoter.id), '推广商已删除，并同步更新 JSON 文件。')
+  runAction(() => api.deletePromoter(promoter.id), '推广商已删除，并同步更新 Supabase。')
 }
 
 function deleteReport(report) {
-  runAction(() => api.deleteReport(report.id), '报备记录已删除，并同步更新 JSON 文件。')
+  runAction(() => api.deleteReport(report.id), '报备记录已删除，并同步更新 Supabase。')
 }
 
 function promoterTerritoryText(territories) {
