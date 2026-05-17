@@ -18,22 +18,23 @@
 - [x] 各 tab 的 props/emits 边界清晰
 - [x] 现有搜索、分页、选择、导入、导出、删除行为不变
 
-## P0: 抽取表单弹窗逻辑
+## 已完成: P0 抽取表单弹窗逻辑
 
-学校、书目、推广商、报备表单状态和弹窗控制仍集中在 `App.vue`。
+学校、书目、推广商、报备表单状态已拆到独立弹窗组件，`App.vue` 只保留弹窗入口、当前编辑对象、API 保存流程和全局消息。
 
-- 抽出 `SchoolModal.vue`
-- 抽出 `BookModal.vue`
-- 抽出 `PromoterModal.vue`
-- 抽出 `ReportModal.vue`
-- 将表单 reset、open、close、submit 逻辑移动到对应组件或 composable
-- 报备表单校验继续复用 `shared/reportRules.js`
+- [x] 抽出 `SchoolModal.vue`
+- [x] 抽出 `BookModal.vue`
+- [x] 抽出 `PromoterModal.vue`
+- [x] 抽出 `ReportModal.vue`
+- [x] 将表单 reset、open、close、submit 逻辑移动到对应组件或 composable
+- [x] 报备表单校验继续复用 `shared/reportRules.js`
+- [x] 执行 `npm run build`
 
 验收点:
 
-- `App.vue` 不再维护所有表单字段的 reactive 对象
-- 弹窗组件只通过 props 接收初始数据，通过 emits 通知保存/关闭
-- 新增和编辑流程行为不变
+- [x] `App.vue` 不再维护所有表单字段的 reactive 对象
+- [x] 弹窗组件只通过 props 接收初始数据，通过 emits 通知保存/关闭
+- [x] 新增和编辑流程行为不变
 
 ## P1: 继续拆分后端 service 层
 
