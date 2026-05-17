@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
     <div
       v-if="dropdownOpen"
       :id="listboxId"
-      class="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-2xl border border-sand-200 bg-white p-2 shadow-xl"
+      class="absolute z-20 mt-2 max-h-[45vh] w-full overflow-auto rounded-lg border border-sand-200 bg-white p-2 shadow-xl"
       :class="{ 'border-red-300 bg-red-50/30': invalid }"
       role="listbox"
     >

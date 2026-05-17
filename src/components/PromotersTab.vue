@@ -55,11 +55,11 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <section class="mt-6 panel p-6">
+  <section class="mt-6 panel p-4 sm:p-6">
     <EntityListToolbar
       v-model="search.promoters"
       search-placeholder="搜索推广商 / 联系人 / 电话 / 省份"
-      search-width-class="w-72"
+      search-width-class="sm:w-72"
       create-label="新增推广商"
       :busy="busy"
       :selected-count="selectedIds.promoters.length"
@@ -69,8 +69,44 @@ const emit = defineEmits([
       @export="emit('export', $event)"
       @batch-delete="emit('batch-delete')"
     />
-    <div class="mt-5 overflow-x-auto">
-      <table class="min-w-full text-left text-sm">
+    <div class="mt-5 grid gap-3 sm:hidden">
+      <article
+        v-for="promoter in pageRows"
+        :key="promoter.id"
+        class="rounded-lg border border-sand-200 bg-white p-4"
+      >
+        <div class="flex items-start gap-3">
+          <UCheckbox :model-value="isSelected('promoters', promoter.id)" @update:model-value="emit('toggle-row', { id: promoter.id, checked: $event })" />
+          <div class="min-w-0 flex-1">
+            <p class="break-words text-base font-semibold text-sand-900">{{ promoter.name }}</p>
+            <p class="mt-1 text-sm text-sand-600">{{ promoter.contact || '未填写联系人' }} / {{ promoter.phone || '未填写电话' }}</p>
+          </div>
+        </div>
+        <dl class="mt-4 grid gap-3 text-sm">
+          <div class="grid gap-1">
+            <dt class="text-sand-500">最近代理年度</dt>
+            <dd class="font-medium text-sand-900">{{ promoter.latestAgencyYear }}</dd>
+          </div>
+          <div class="grid gap-1">
+            <dt class="text-sand-500">最新代理配置</dt>
+            <dd class="break-words leading-6 text-sand-700">{{ promoter.latestAgencyText }}</dd>
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <dt class="text-sand-500">历史记录数</dt>
+            <dd class="font-medium text-sand-900">{{ promoter.agencyRecordCount }}</dd>
+          </div>
+        </dl>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <UButton size="sm" color="neutral" variant="soft" class="justify-center" :disabled="busy" @click="emit('edit', promoter)">编辑</UButton>
+          <UButton size="sm" color="error" variant="soft" class="justify-center" :disabled="busy" @click="emit('delete', promoter)">删除</UButton>
+        </div>
+      </article>
+      <div v-if="!pageRows.length" class="rounded-lg border border-dashed border-sand-200 py-8 text-center text-sm text-sand-500">
+        暂无推广商数据
+      </div>
+    </div>
+    <div class="mt-5 hidden overflow-x-auto sm:block">
+      <table class="min-w-[960px] text-left text-sm">
         <thead class="border-b border-sand-200 text-sand-500">
           <tr>
             <th class="px-3 py-3 font-medium">

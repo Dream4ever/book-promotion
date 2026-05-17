@@ -214,8 +214,8 @@ function submit() {
           <UInput v-model="form.phone" class="w-full" type="text" placeholder="手机号或座机" />
         </div>
       </div>
-      <div class="grid gap-4 rounded-2xl border border-sand-200 bg-sand-50 p-5">
-        <div class="flex items-center justify-between gap-3">
+      <div class="grid gap-4 rounded-lg border border-sand-200 bg-sand-50 p-4 sm:p-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h4 class="text-base font-semibold text-sand-900">年度代理记录</h4>
             <p class="mt-1 text-sm text-sand-600">先编辑某一年度的代理信息，再加入下方历史记录列表。</p>
@@ -236,7 +236,7 @@ function submit() {
             <UInput v-model="form.workload" class="w-full" type="text" placeholder="例如：年度目标 50 校" />
           </div>
         </div>
-        <div class="rounded-2xl border border-sand-200 bg-white p-4">
+        <div class="rounded-lg border border-sand-200 bg-white p-4">
           <div class="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
             <div>
               <label class="label-text">代理省份</label>
@@ -246,7 +246,7 @@ function submit() {
               <label class="label-text">是否接单</label>
               <USelect v-model="form.accepting" class="w-full" :items="acceptingOptions" />
             </div>
-            <UButton color="neutral" variant="soft" icon="i-lucide-plus" @click="addTerritory">添加省份</UButton>
+            <UButton class="justify-center" color="neutral" variant="soft" icon="i-lucide-plus" @click="addTerritory">添加省份</UButton>
           </div>
           <div class="mt-4 flex flex-wrap gap-2">
             <div
@@ -260,13 +260,43 @@ function submit() {
             <div v-if="!form.territories.length" class="text-sm text-sand-500">当前年度还没有配置代理省份</div>
           </div>
         </div>
-        <div class="flex flex-wrap gap-3">
-          <UButton color="neutral" variant="soft" icon="i-lucide-save" @click="saveAgencyRecord">
+        <div class="grid gap-3 sm:flex sm:flex-wrap">
+          <UButton class="justify-center" color="neutral" variant="soft" icon="i-lucide-save" @click="saveAgencyRecord">
             {{ form.agencyRecordId ? '保存年度记录' : '加入年度记录' }}
           </UButton>
-          <UButton color="neutral" variant="soft" icon="i-lucide-eraser" @click="resetAgencyDraft">清空当前年度</UButton>
+          <UButton class="justify-center" color="neutral" variant="soft" icon="i-lucide-eraser" @click="resetAgencyDraft">清空当前年度</UButton>
         </div>
-        <div class="overflow-x-auto">
+        <div class="grid gap-3 sm:hidden">
+          <article
+            v-for="record in form.agencyRecords"
+            :key="record.id"
+            class="rounded-lg border border-sand-200 bg-white p-4"
+          >
+            <p class="font-semibold text-sand-900">{{ record.year }}年</p>
+            <dl class="mt-3 grid gap-3 text-sm">
+              <div class="grid gap-1">
+                <dt class="text-sand-500">代理省份配置</dt>
+                <dd class="break-words leading-6 text-sand-700">{{ formatTerritoryText(record.territories) }}</dd>
+              </div>
+              <div class="grid gap-1">
+                <dt class="text-sand-500">代理期间</dt>
+                <dd class="text-sand-900">{{ record.agencyPeriod || '-' }}</dd>
+              </div>
+              <div class="grid gap-1">
+                <dt class="text-sand-500">任务量</dt>
+                <dd class="text-sand-900">{{ record.workload || '-' }}</dd>
+              </div>
+            </dl>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <UButton size="sm" color="neutral" variant="soft" class="justify-center" @click="editAgencyRecord(record)">编辑</UButton>
+              <UButton size="sm" color="error" variant="soft" class="justify-center" @click="removeAgencyRecord(record.id)">删除</UButton>
+            </div>
+          </article>
+          <div v-if="!form.agencyRecords.length" class="rounded-lg border border-dashed border-sand-200 py-8 text-center text-sm text-sand-500">
+            还没有保存年度代理记录
+          </div>
+        </div>
+        <div class="hidden overflow-x-auto sm:block">
           <table class="min-w-full text-left text-sm">
             <thead class="border-b border-sand-200 text-sand-500">
               <tr>

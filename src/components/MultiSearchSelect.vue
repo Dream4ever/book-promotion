@@ -87,7 +87,7 @@ function toggleFirstMatch() {
     />
 
     <div
-      class="max-h-64 overflow-auto rounded-2xl border border-sand-200 bg-white p-2"
+      class="max-h-[45vh] overflow-auto rounded-lg border border-sand-200 bg-white p-2"
       :class="{ 'border-red-300 bg-red-50/30': invalid }"
       role="listbox"
       aria-multiselectable="true"
@@ -96,7 +96,7 @@ function toggleFirstMatch() {
         v-for="option in panelState.kind === 'ready' ? filteredOptions : []"
         :key="option.id"
         type="button"
-        class="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-sand-50"
+        class="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-sand-50"
         role="option"
         :aria-selected="selectedIds.has(option.id)"
         @click="toggleOption(option)"
@@ -119,9 +119,9 @@ function toggleFirstMatch() {
         :key="option.id"
         color="neutral"
         variant="soft"
-        class="gap-2 px-3 py-2"
+        class="max-w-full gap-2 px-3 py-2"
       >
-        {{ option.label }}
+        <span class="min-w-0 truncate">{{ option.label }}</span>
         <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="xs" square @click="removeOption(option.id)" />
       </UBadge>
       <span v-if="!selectedOptions.length" class="text-sm text-sand-500">尚未选择书目</span>

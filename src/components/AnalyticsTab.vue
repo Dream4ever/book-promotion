@@ -81,14 +81,14 @@ const bookItems = computed(() => [
 
 <template>
   <section class="mt-6 grid gap-6">
-    <div class="panel p-6">
+    <div class="panel p-4 sm:p-6">
       <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div class="flex flex-wrap gap-3">
-          <USelect v-model="selectedTerm" class="w-40" :items="termItems" />
-          <USelect v-model="selectedProvince" class="w-40" :items="provinceItems" />
-          <USelect v-model="selectedPromoterId" class="w-52" :items="promoterItems" />
-          <USelect v-model="selectedBookId" class="w-64" :items="bookItems" />
-          <UButton icon="i-lucide-download" color="neutral" variant="soft" @click="emit('export')">导出筛选明细</UButton>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <USelect v-model="selectedTerm" class="w-full" :items="termItems" />
+          <USelect v-model="selectedProvince" class="w-full" :items="provinceItems" />
+          <USelect v-model="selectedPromoterId" class="w-full" :items="promoterItems" />
+          <USelect v-model="selectedBookId" class="w-full sm:col-span-2 lg:col-span-1" :items="bookItems" />
+          <UButton class="w-full justify-center sm:col-span-2 lg:col-span-1" icon="i-lucide-download" color="neutral" variant="soft" @click="emit('export')">导出筛选明细</UButton>
         </div>
       </div>
       <div class="mt-5 flex flex-wrap gap-3 text-sm">
@@ -100,7 +100,7 @@ const bookItems = computed(() => [
     </div>
 
     <div class="grid gap-6 xl:grid-cols-3">
-      <div class="panel p-6">
+      <div class="panel p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-sand-900">按省份统计</h3>
         <div class="mt-4 overflow-x-auto">
           <table class="min-w-full text-left text-sm">
@@ -127,7 +127,7 @@ const bookItems = computed(() => [
         </div>
       </div>
 
-      <div class="panel p-6">
+      <div class="panel p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-sand-900">按推广商统计</h3>
         <div class="mt-4 overflow-x-auto">
           <table class="min-w-full text-left text-sm">
@@ -154,7 +154,7 @@ const bookItems = computed(() => [
         </div>
       </div>
 
-      <div class="panel p-6">
+      <div class="panel p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-sand-900">按书目统计</h3>
         <div class="mt-4 overflow-x-auto">
           <table class="min-w-full text-left text-sm">

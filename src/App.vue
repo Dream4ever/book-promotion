@@ -431,20 +431,20 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto min-h-screen max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <UCard :ui="{ body: 'p-6 lg:p-8' }">
-      <h1 class="mt-4 text-3xl font-semibold tracking-tight text-sand-900 sm:text-4xl">
+  <div class="mx-auto min-h-screen max-w-7xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+    <UCard :ui="{ root: 'rounded-lg', body: 'p-4 sm:p-6 lg:p-8' }">
+      <h1 class="text-2xl font-semibold tracking-tight text-sand-900 sm:mt-4 sm:text-4xl">
         出版社推广商报备系统
       </h1>
       <UTabs
         v-model="activeTab"
-        class="mt-6"
+        class="mt-5 sm:mt-6"
         :items="tabs"
         :content="false"
         variant="link"
         :ui="{
-          list: 'flex-wrap gap-2',
-          trigger: 'grow-0 justify-center whitespace-nowrap',
+          list: '-mx-2 flex-nowrap gap-2 overflow-x-auto px-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0',
+          trigger: 'flex-none justify-center whitespace-nowrap px-3 sm:grow-0',
         }"
       />
     </UCard>

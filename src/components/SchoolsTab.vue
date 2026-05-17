@@ -55,7 +55,7 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <section class="mt-6 panel p-6">
+  <section class="mt-6 panel p-4 sm:p-6">
     <EntityListToolbar
       v-model="search.schools"
       search-placeholder="搜索省份 / 学校名称"
@@ -68,7 +68,29 @@ const emit = defineEmits([
       @export="emit('export', $event)"
       @batch-delete="emit('batch-delete')"
     />
-    <div class="mt-5 overflow-x-auto">
+    <div class="mt-5 grid gap-3 sm:hidden">
+      <article
+        v-for="school in pageRows"
+        :key="school.id"
+        class="rounded-lg border border-sand-200 bg-white p-4"
+      >
+        <div class="flex items-start gap-3">
+          <UCheckbox :model-value="isSelected('schools', school.id)" @update:model-value="emit('toggle-row', { id: school.id, checked: $event })" />
+          <div class="min-w-0 flex-1">
+            <p class="break-words text-base font-semibold text-sand-900">{{ school.name }}</p>
+            <p class="mt-1 text-sm text-sand-600">{{ school.province }}</p>
+          </div>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <UButton size="sm" color="neutral" variant="soft" class="justify-center" :disabled="busy" @click="emit('edit', school)">编辑</UButton>
+          <UButton size="sm" color="error" variant="soft" class="justify-center" :disabled="busy" @click="emit('delete', school)">删除</UButton>
+        </div>
+      </article>
+      <div v-if="!pageRows.length" class="rounded-lg border border-dashed border-sand-200 py-8 text-center text-sm text-sand-500">
+        暂无学校数据
+      </div>
+    </div>
+    <div class="mt-5 hidden overflow-x-auto sm:block">
       <table class="min-w-full text-left text-sm">
         <thead class="border-b border-sand-200 text-sand-500">
           <tr>

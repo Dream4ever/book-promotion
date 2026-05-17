@@ -37,7 +37,7 @@ body {
 
 @layer components {
   .panel {
-    @apply rounded-3xl border border-sand-200/80 bg-white/90 shadow-panel backdrop-blur;
+    @apply rounded-lg border border-sand-200/80 bg-white/90 shadow-panel backdrop-blur;
   }
 
   .label-text {
@@ -45,7 +45,7 @@ body {
   }
 
   .field-input {
-    @apply w-full rounded-2xl border border-sand-200 bg-white px-4 py-3 text-sm text-sand-900 outline-none transition placeholder:text-sand-400 focus:border-pine-500 focus:ring-2 focus:ring-pine-500/15;
+    @apply w-full rounded-lg border border-sand-200 bg-white px-4 py-3 text-sm text-sand-900 outline-none transition placeholder:text-sand-400 focus:border-pine-500 focus:ring-2 focus:ring-pine-500/15;
   }
 
   .field-input-error {
@@ -57,15 +57,15 @@ body {
   }
 
   .primary-button {
-    @apply inline-flex items-center justify-center rounded-2xl bg-pine-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-pine-700 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-lg bg-pine-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-pine-700 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .secondary-button {
-    @apply inline-flex items-center justify-center rounded-2xl border border-sand-300 bg-sand-50 px-4 py-3 text-sm font-medium text-sand-800 transition hover:border-sand-400 hover:bg-sand-100;
+    @apply inline-flex items-center justify-center rounded-lg border border-sand-300 bg-sand-50 px-4 py-3 text-sm font-medium text-sand-800 transition hover:border-sand-400 hover:bg-sand-100;
   }
 
   .danger-button {
-    @apply inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-100;
+    @apply inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-100;
   }
 
   .tag {

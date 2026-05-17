@@ -58,11 +58,11 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <section class="mt-6 panel p-6">
+  <section class="mt-6 panel p-4 sm:p-6">
     <EntityListToolbar
       v-model="search.reports"
       search-placeholder="搜索学期 / 省份 / 学校 / 书目 / 推广商"
-      search-width-class="w-72"
+      search-width-class="sm:w-72"
       create-label="新增报备"
       :busy="busy"
       :selected-count="selectedIds.reports.length"
@@ -70,8 +70,48 @@ const emit = defineEmits([
       @export="emit('export', $event)"
       @batch-delete="emit('batch-delete')"
     />
-    <div class="mt-5 overflow-x-auto">
-      <table class="min-w-full text-left text-sm">
+    <div class="mt-5 grid gap-3 sm:hidden">
+      <article
+        v-for="report in pageRows"
+        :key="report.id"
+        class="rounded-lg border border-sand-200 bg-white p-4"
+      >
+        <div class="flex items-start gap-3">
+          <UCheckbox :model-value="isSelected('reports', report.id)" @update:model-value="emit('toggle-row', { id: report.id, checked: $event })" />
+          <div class="min-w-0 flex-1">
+            <p class="text-base font-semibold text-sand-900">{{ report.term }}</p>
+            <p class="mt-1 break-words text-sm text-sand-600">{{ report.schoolLabel }}</p>
+          </div>
+        </div>
+        <dl class="mt-4 grid gap-3 text-sm">
+          <div class="grid gap-1">
+            <dt class="text-sand-500">书目</dt>
+            <dd class="break-words text-sand-900">{{ report.bookLabel }}</dd>
+          </div>
+          <div class="grid gap-1">
+            <dt class="text-sand-500">推广商</dt>
+            <dd class="break-words text-sand-900">{{ report.promoterLabel }}</dd>
+          </div>
+          <div class="grid gap-1">
+            <dt class="text-sand-500">备注</dt>
+            <dd class="break-words text-sand-700">{{ report.note || '-' }}</dd>
+          </div>
+          <div class="grid gap-1">
+            <dt class="text-sand-500">报备时间</dt>
+            <dd class="text-sand-900">{{ formatTime(report.updatedAt || report.createdAt) }}</dd>
+          </div>
+        </dl>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <UButton size="sm" color="neutral" variant="soft" class="justify-center" :disabled="busy" @click="emit('edit', report)">编辑</UButton>
+          <UButton size="sm" color="error" variant="soft" class="justify-center" :disabled="busy" @click="emit('delete', report)">删除</UButton>
+        </div>
+      </article>
+      <div v-if="!pageRows.length" class="rounded-lg border border-dashed border-sand-200 py-8 text-center text-sm text-sand-500">
+        暂无报备记录
+      </div>
+    </div>
+    <div class="mt-5 hidden overflow-x-auto sm:block">
+      <table class="min-w-[1120px] text-left text-sm">
         <thead class="border-b border-sand-200 text-sand-500">
           <tr>
             <th class="px-3 py-3 font-medium">

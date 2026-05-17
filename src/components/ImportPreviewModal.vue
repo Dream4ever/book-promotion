@@ -41,24 +41,41 @@ function formatPreviewValue(kind, row, key) {
         文件：{{ preview.fileName }}，原始行数 {{ preview.rawCount }}，可导入 {{ preview.rows.length }} 条{{ kindLabels[preview.kind] }}数据。
       </p>
     </template>
-    <table class="min-w-full text-left text-sm">
-      <thead class="border-b border-sand-200 text-sand-500">
-        <tr>
-          <th class="px-3 py-3 font-medium">#</th>
-          <th v-for="column in preview.columns" :key="column.key" class="px-3 py-3 font-medium">
-            {{ column.label }}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(row, index) in preview.rows" :key="index" class="border-b border-sand-100 align-top">
-          <td class="px-3 py-3">{{ index + 1 }}</td>
-          <td v-for="column in preview.columns" :key="column.key" class="px-3 py-3">
-            {{ formatPreviewValue(preview.kind, row, column.key) }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="grid gap-3 sm:hidden">
+      <article
+        v-for="(row, index) in preview.rows"
+        :key="index"
+        class="rounded-lg border border-sand-200 bg-white p-4"
+      >
+        <p class="text-sm font-semibold text-sand-900">#{{ index + 1 }}</p>
+        <dl class="mt-3 grid gap-3 text-sm">
+          <div v-for="column in preview.columns" :key="column.key" class="grid gap-1">
+            <dt class="text-sand-500">{{ column.label }}</dt>
+            <dd class="break-words text-sand-900">{{ formatPreviewValue(preview.kind, row, column.key) }}</dd>
+          </div>
+        </dl>
+      </article>
+    </div>
+    <div class="hidden overflow-x-auto sm:block">
+      <table class="min-w-full text-left text-sm">
+        <thead class="border-b border-sand-200 text-sand-500">
+          <tr>
+            <th class="px-3 py-3 font-medium">#</th>
+            <th v-for="column in preview.columns" :key="column.key" class="px-3 py-3 font-medium">
+              {{ column.label }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, index) in preview.rows" :key="index" class="border-b border-sand-100 align-top">
+            <td class="px-3 py-3">{{ index + 1 }}</td>
+            <td v-for="column in preview.columns" :key="column.key" class="px-3 py-3">
+              {{ formatPreviewValue(preview.kind, row, column.key) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <template #footer>
       <UButton color="neutral" variant="soft" :disabled="busy" @click="emit('close')">取消</UButton>
       <UButton icon="i-lucide-upload" :disabled="busy" @click="emit('confirm')">确认导入</UButton>

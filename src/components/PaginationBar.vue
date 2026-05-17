@@ -38,11 +38,12 @@ function setPage(nextPage) {
 
 <template>
   <div class="mt-5 flex flex-col gap-3 border-t border-sand-200 pt-4 text-sm text-sand-600 sm:flex-row sm:items-center sm:justify-between">
-    <div>
+    <div class="text-center sm:text-left">
       共 {{ totalItems }} 条，每页 {{ pageSize }} 条，第 {{ page }} / {{ totalPages }} 页
     </div>
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex items-center gap-2">
       <UButton
+        class="flex-1 justify-center sm:flex-none"
         icon="i-lucide-chevron-left"
         color="neutral"
         variant="soft"
@@ -55,6 +56,7 @@ function setPage(nextPage) {
       <UButton
         v-for="item in visiblePages"
         :key="item"
+        class="hidden sm:inline-flex"
         size="xs"
         :color="item === page ? 'primary' : 'neutral'"
         :variant="item === page ? 'solid' : 'soft'"
@@ -63,6 +65,7 @@ function setPage(nextPage) {
         {{ item }}
       </UButton>
       <UButton
+        class="flex-1 justify-center sm:flex-none"
         trailing-icon="i-lucide-chevron-right"
         color="neutral"
         variant="soft"

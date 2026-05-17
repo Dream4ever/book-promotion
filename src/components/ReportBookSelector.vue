@@ -38,7 +38,7 @@ const activeMode = computed(() => props.modes.find((mode) => mode.key === props.
   <div>
     <label class="label-text">书目</label>
     <div
-      class="grid gap-4 rounded-2xl border border-sand-200 bg-sand-50 p-4"
+      class="grid gap-4 rounded-lg border border-sand-200 bg-sand-50 p-4"
       :class="{ 'border-red-300 bg-red-50/40': bookIdError || bookIdsError }"
     >
       <div class="flex flex-col gap-2 sm:flex-row" role="tablist" aria-label="书目选择方式">
@@ -56,7 +56,7 @@ const activeMode = computed(() => props.modes.find((mode) => mode.key === props.
         </UButton>
       </div>
 
-      <div class="rounded-xl bg-white px-3 py-3">
+      <div class="rounded-lg bg-white px-3 py-3">
         <p class="text-xs leading-5 text-sand-500">
           {{ activeMode?.description }}
         </p>
