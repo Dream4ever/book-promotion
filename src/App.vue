@@ -957,12 +957,12 @@ onMounted(async () => {
 <template>
   <div class="mx-auto min-h-screen max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
     <section class="panel p-6 lg:p-8">
-      <p class="tag">本地 JSON 持久化 / 搜索 / 分页 / 批量导出</p>
+      <p class="tag">Supabase 持久化 / 搜索 / 分页 / 批量导出</p>
       <h1 class="mt-4 text-3xl font-semibold tracking-tight text-sand-900 sm:text-4xl">
         出版社推广商报备系统
       </h1>
       <p class="mt-4 max-w-4xl text-sm leading-7 text-sand-700 sm:text-base">
-        所有数据统一保存在项目目录下的 <span class="font-medium">data/db.json</span>。
+        所有数据统一保存到 Supabase。
         同一个学校的同一个书目在同一个学期只能由一个推广商报备。
       </p>
       <div class="mt-6 flex flex-wrap gap-3">

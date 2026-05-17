@@ -2,15 +2,15 @@
 
 ## Project Structure & Module Organization
 
-This project is a Vue 3 + Vite frontend with a small Express API backed by `data/db.json`.
+This project is a Vue 3 + Vite frontend with a small Express API backed by Supabase.
 
 - `src/`: frontend application code.
 - `src/components/`: reusable Vue UI components.
 - `src/composables/`: shared frontend state and workflow logic.
 - `src/utils/`: API, import, and export helpers.
-- `server/`: Express API and JSON database helpers.
+- `server/`: Express API and Supabase database helpers.
 - `shared/`: logic reused by frontend and backend, such as report rules.
-- `data/db.json`: local persistent data store.
+- `.env`: local Supabase connection settings. Do not commit real secrets.
 - `dist/`: generated production build output. Do not edit by hand.
 - `docs/`: planning and project documentation.
 
@@ -53,4 +53,4 @@ Keep this pattern. Use concise, imperative summaries. For pull requests, include
 
 ## Data & Configuration Notes
 
-The API writes directly to `data/db.json`. Avoid manual edits while the server is running. Do not commit generated `dist/` changes unless the task specifically requires build artifacts.
+The API writes directly to Supabase. Keep service role keys only in local environment variables. Do not commit generated `dist/` changes unless the task specifically requires build artifacts.
