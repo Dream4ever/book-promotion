@@ -1,4 +1,5 @@
 <script setup>
+import EntityListToolbar from './EntityListToolbar.vue'
 import PaginationBar from './PaginationBar.vue'
 
 defineProps({
@@ -55,23 +56,21 @@ const emit = defineEmits([
 
 <template>
   <section class="mt-6 panel p-6">
-    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-      <div>
-        <h2 class="text-xl font-semibold text-sand-900">推广商名单</h2>
-        <p class="mt-1 text-sm text-sand-600">可按名称、联系人、电话、代理省份搜索。</p>
-      </div>
-      <div class="flex flex-wrap gap-3">
-        <input v-model="search.promoters" class="field-input w-72" type="text" placeholder="搜索推广商 / 联系人 / 电话 / 省份" />
-        <button type="button" class="primary-button" :disabled="busy" @click="emit('create')">新增推广商</button>
-        <label class="secondary-button cursor-pointer">
-          Excel 导入
-          <input class="hidden" type="file" accept=".xlsx,.xls,.csv" @change="emit('import', $event)" />
-        </label>
-        <button type="button" class="secondary-button" @click="emit('export', false)">导出筛选结果</button>
-        <button type="button" class="secondary-button" :disabled="!selectedIds.promoters.length" @click="emit('export', true)">导出已选</button>
-        <button type="button" class="danger-button" :disabled="busy || !selectedIds.promoters.length" @click="emit('batch-delete')">批量删除</button>
-      </div>
-    </div>
+    <EntityListToolbar
+      v-model="search.promoters"
+      title="推广商名单"
+      description="可按名称、联系人、电话、代理省份搜索。"
+      search-placeholder="搜索推广商 / 联系人 / 电话 / 省份"
+      search-width-class="w-72"
+      create-label="新增推广商"
+      :busy="busy"
+      :selected-count="selectedIds.promoters.length"
+      import-enabled
+      @create="emit('create')"
+      @import="emit('import', $event)"
+      @export="emit('export', $event)"
+      @batch-delete="emit('batch-delete')"
+    />
     <div class="mt-5 overflow-x-auto">
       <table class="min-w-full text-left text-sm">
         <thead class="border-b border-sand-200 text-sand-500">

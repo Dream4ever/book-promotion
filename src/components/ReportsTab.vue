@@ -1,4 +1,5 @@
 <script setup>
+import EntityListToolbar from './EntityListToolbar.vue'
 import PaginationBar from './PaginationBar.vue'
 
 defineProps({
@@ -58,19 +59,19 @@ const emit = defineEmits([
 
 <template>
   <section class="mt-6 panel p-6">
-    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-      <div>
-        <h2 class="text-xl font-semibold text-sand-900">报备记录</h2>
-        <p class="mt-1 text-sm text-sand-600">报备时支持模糊查询，修改时仍校验唯一性。</p>
-      </div>
-      <div class="flex flex-wrap gap-3">
-        <input v-model="search.reports" class="field-input w-72" type="text" placeholder="搜索学期 / 省份 / 学校 / 书目 / 推广商" />
-        <button type="button" class="primary-button" :disabled="busy" @click="emit('create')">新增报备</button>
-        <button type="button" class="secondary-button" @click="emit('export', false)">导出筛选结果</button>
-        <button type="button" class="secondary-button" :disabled="!selectedIds.reports.length" @click="emit('export', true)">导出已选</button>
-        <button type="button" class="danger-button" :disabled="busy || !selectedIds.reports.length" @click="emit('batch-delete')">批量删除</button>
-      </div>
-    </div>
+    <EntityListToolbar
+      v-model="search.reports"
+      title="报备记录"
+      description="报备时支持模糊查询，修改时仍校验唯一性。"
+      search-placeholder="搜索学期 / 省份 / 学校 / 书目 / 推广商"
+      search-width-class="w-72"
+      create-label="新增报备"
+      :busy="busy"
+      :selected-count="selectedIds.reports.length"
+      @create="emit('create')"
+      @export="emit('export', $event)"
+      @batch-delete="emit('batch-delete')"
+    />
     <div class="mt-5 overflow-x-auto">
       <table class="min-w-full text-left text-sm">
         <thead class="border-b border-sand-200 text-sand-500">
