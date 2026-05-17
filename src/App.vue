@@ -433,21 +433,15 @@ onMounted(async () => {
 <template>
   <div class="mx-auto min-h-screen max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
     <UCard :ui="{ body: 'p-6 lg:p-8' }">
-      <UBadge color="primary" variant="soft">Supabase 持久化 / 搜索 / 分页 / 批量导出</UBadge>
       <h1 class="mt-4 text-3xl font-semibold tracking-tight text-sand-900 sm:text-4xl">
         出版社推广商报备系统
       </h1>
-      <p class="mt-4 max-w-4xl text-sm leading-7 text-sand-700 sm:text-base">
-        所有数据统一保存到 Supabase。
-        同一个学校的同一个书目在同一个学期只能由一个推广商报备。
-      </p>
       <UTabs
         v-model="activeTab"
         class="mt-6"
         :items="tabs"
         :content="false"
-        size="sm"
-        variant="pill"
+        variant="link"
         :ui="{
           list: 'flex-wrap gap-2',
           trigger: 'grow-0 justify-center whitespace-nowrap',
