@@ -172,3 +172,62 @@
 - [x] `server/db.js` 聚焦数据库编排流程
 - [x] 行结构映射和差异计算可以单独测试
 - [x] 现有 Supabase 读写表名和 RPC 配置行为不变
+
+## 已完成: P2 抽取导入预览弹窗组件
+
+导入预览确认弹窗已拆成 `ImportPreviewModal.vue`，页面只负责传入预览状态和确认/关闭动作，预览字段格式化由组件内部处理。
+
+- [x] 新增 `ImportPreviewModal.vue`
+- [x] 将导入预览表格和 footer 操作移出 `App.vue`
+- [x] 将导入预览值格式化收敛到组件或专用 helper
+- [x] 执行 `npm test` 和 `npm run build`
+
+验收点:
+
+- [x] `App.vue` 不再直接渲染导入预览表格
+- [x] 学校、书目、推广商导入预览显示不变
+- [x] 确认导入和关闭行为不变
+
+## 待办: P2 抽取统计明细弹窗组件
+
+统计明细弹窗模板仍在 `App.vue` 中，和统计 composable 已拆出的状态逻辑不匹配。应抽成独立组件，页面只控制可见性和导出动作。
+
+- [ ] 新增 `AnalyticsDetailModal.vue`
+- [ ] 将统计明细表格、空状态和 footer 操作移出 `App.vue`
+- [ ] 保持导出明细、关闭弹窗行为不变
+- [ ] 执行 `npm test` 和 `npm run build`
+
+验收点:
+
+- [ ] `App.vue` 不再直接渲染统计明细表格
+- [ ] 明细行展示字段和时间格式不变
+- [ ] 空明细状态和导出按钮行为不变
+
+## 待办: P2 抽取推广商列表展示 view-model
+
+`PromotersTab.vue` 模板中多次重复调用 `latestAgencyRecord(getAgencyRecords(promoter))`，列表展示、搜索和导出也都依赖同一套代理记录展示字段。应抽成纯函数 view-model。
+
+- [ ] 新增 `src/utils/promoterViewModels.js`
+- [ ] 将推广商最新代理年度、配置文本、历史记录数计算移出模板
+- [ ] 给 legacy 记录和最新年度选择补测试
+- [ ] 执行 `npm test` 和 `npm run build`
+
+验收点:
+
+- [ ] `PromotersTab.vue` 不再重复组合代理记录展示文本
+- [ ] 推广商搜索、列表、导出继续使用同一规范化数据
+- [ ] legacy 推广商数据展示不变
+
+## 待办: P3 抽取实体列表通用工具栏
+
+学校、书目、推广商和报备 tab 的搜索、创建、导入、导出、批量删除工具栏结构相似，可在前几项完成后再抽公共组件，减少 tab 模板重复。
+
+- [ ] 新增实体列表工具栏组件
+- [ ] 支持可选导入按钮和已选导出按钮
+- [ ] 逐步接入学校、书目、推广商、报备 tab
+- [ ] 执行 `npm test` 和 `npm run build`
+
+验收点:
+
+- [ ] 四个 tab 的工具栏交互不变
+- [ ] 各 tab 仍可自定义搜索 placeholder 和创建按钮文案

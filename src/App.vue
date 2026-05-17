@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import AnalyticsTab from './components/AnalyticsTab.vue'
 import BookModal from './components/BookModal.vue'
 import BooksTab from './components/BooksTab.vue'
+import ImportPreviewModal from './components/ImportPreviewModal.vue'
 import ModalPanel from './components/ModalPanel.vue'
 import PromoterModal from './components/PromoterModal.vue'
 import PromotersTab from './components/PromotersTab.vue'
@@ -414,16 +415,6 @@ const { exportRows, exportAnalytics, exportAnalyticsDetail } = useRegistryExport
   setMessage,
 })
 
-function formatPreviewValue(kind, row, key) {
-  if (kind === 'books' && key === 'price') {
-    return `￥${Number(row.price || 0).toFixed(2)}`
-  }
-  if (kind === 'promoters' && key === 'agencyRecords') {
-    return formatAgencyRecordsText(row.agencyRecords)
-  }
-  return row[key] || '-'
-}
-
 function openAnalyticsDetailModal(payload) {
   openAnalyticsStatDetail(payload)
   modal.analyticsDetail = true
@@ -669,34 +660,13 @@ onMounted(async () => {
       </template>
     </ModalPanel>
 
-    <ModalPanel :visible="importPreview.visible" title="导入预览确认" max-width-class="max-w-6xl" @close="closeImportPreview">
-      <template #description>
-        <p class="mt-2 text-sm text-sand-600">
-          文件：{{ importPreview.fileName }}，原始行数 {{ importPreview.rawCount }}，可导入 {{ importPreview.rows.length }} 条{{ kindLabels[importPreview.kind] }}数据。
-        </p>
-      </template>
-      <table class="min-w-full text-left text-sm">
-        <thead class="border-b border-sand-200 text-sand-500">
-          <tr>
-            <th class="px-3 py-3 font-medium">#</th>
-            <th v-for="column in importPreview.columns" :key="column.key" class="px-3 py-3 font-medium">
-              {{ column.label }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(row, index) in importPreview.rows" :key="index" class="border-b border-sand-100 align-top">
-            <td class="px-3 py-3">{{ index + 1 }}</td>
-            <td v-for="column in importPreview.columns" :key="column.key" class="px-3 py-3">
-              {{ formatPreviewValue(importPreview.kind, row, column.key) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <template #footer>
-        <button type="button" class="secondary-button" :disabled="busy" @click="closeImportPreview">取消</button>
-        <button type="button" class="primary-button" :disabled="busy" @click="confirmImport">确认导入</button>
-      </template>
-    </ModalPanel>
+    <ImportPreviewModal
+      :visible="importPreview.visible"
+      :busy="busy"
+      :preview="importPreview"
+      :kind-labels="kindLabels"
+      @close="closeImportPreview"
+      @confirm="confirmImport"
+    />
   </div>
 </template>
