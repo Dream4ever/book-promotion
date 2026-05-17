@@ -23,10 +23,9 @@ import { PROVINCES } from './constants/provinces'
 import { api, getErrorMessage } from './utils/api'
 import {
   formatAgencyRecordsText,
-  formatTerritoryText as promoterTerritoryText,
-  latestAgencyRecord,
   normalizeAgencyRecords as getAgencyRecords,
 } from './utils/promoterAgencyRecords'
+import { buildPromoterViewModels } from './utils/promoterViewModels'
 import { buildReportViewModel } from './utils/reportViewModels'
 
 const PAGE_SIZE = 20
@@ -163,13 +162,13 @@ const bookOptions = computed(() =>
   })),
 )
 
+const joinedPromoters = computed(() => buildPromoterViewModels(store.state.promoters))
+
 const promoterOptions = computed(() =>
-  store.state.promoters.map((promoter) => ({
+  joinedPromoters.value.map((promoter) => ({
     id: promoter.id,
     label: promoter.name,
-    keywords: `${promoter.name} ${promoter.contact} ${promoter.phone} ${formatAgencyRecordsText(
-      getAgencyRecords(promoter),
-    )}`,
+    keywords: promoter.searchText,
     meta: `${promoter.contact || '未填写联系人'} / ${promoter.phone || '未填写电话'}`,
   })),
 )
@@ -202,12 +201,8 @@ const bookFiltered = computed(() => {
 
 const promoterFiltered = computed(() => {
   const keyword = search.promoters.trim().toLowerCase()
-  if (!keyword) return store.state.promoters
-  return store.state.promoters.filter((item) =>
-    `${item.name} ${item.contact} ${item.phone} ${formatAgencyRecordsText(getAgencyRecords(item))}`
-      .toLowerCase()
-      .includes(keyword),
-  )
+  if (!keyword) return joinedPromoters.value
+  return joinedPromoters.value.filter((item) => item.searchText.includes(keyword))
 })
 
 const reportFiltered = computed(() => {
@@ -523,9 +518,6 @@ onMounted(async () => {
       :page-size="PAGE_SIZE"
       :is-selected="isSelected"
       :are-all-selected="areAllSelected"
-      :get-agency-records="getAgencyRecords"
-      :latest-agency-record="latestAgencyRecord"
-      :promoter-territory-text="promoterTerritoryText"
       @update:page="pages.promoters = $event"
       @create="openPromoterModal()"
       @edit="openPromoterModal"

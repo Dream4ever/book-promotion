@@ -203,20 +203,20 @@
 - [x] 明细行展示字段和时间格式不变
 - [x] 空明细状态和导出按钮行为不变
 
-## 待办: P2 抽取推广商列表展示 view-model
+## 已完成: P2 抽取推广商列表展示 view-model
 
-`PromotersTab.vue` 模板中多次重复调用 `latestAgencyRecord(getAgencyRecords(promoter))`，列表展示、搜索和导出也都依赖同一套代理记录展示字段。应抽成纯函数 view-model。
+推广商最新代理年度、配置文本、历史记录数和搜索文本已抽到 `promoterViewModels.js`，`PromotersTab.vue` 只渲染传入的展示字段。
 
-- [ ] 新增 `src/utils/promoterViewModels.js`
-- [ ] 将推广商最新代理年度、配置文本、历史记录数计算移出模板
-- [ ] 给 legacy 记录和最新年度选择补测试
-- [ ] 执行 `npm test` 和 `npm run build`
+- [x] 新增 `src/utils/promoterViewModels.js`
+- [x] 将推广商最新代理年度、配置文本、历史记录数计算移出模板
+- [x] 给 legacy 记录和最新年度选择补测试
+- [x] 执行 `npm test` 和 `npm run build`
 
 验收点:
 
-- [ ] `PromotersTab.vue` 不再重复组合代理记录展示文本
-- [ ] 推广商搜索、列表、导出继续使用同一规范化数据
-- [ ] legacy 推广商数据展示不变
+- [x] `PromotersTab.vue` 不再重复组合代理记录展示文本
+- [x] 推广商搜索、列表、导出继续使用同一规范化数据
+- [x] legacy 推广商数据展示不变
 
 ## 待办: P3 抽取实体列表通用工具栏
 

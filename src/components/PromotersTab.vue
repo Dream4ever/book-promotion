@@ -38,18 +38,6 @@ defineProps({
     type: Function,
     required: true,
   },
-  getAgencyRecords: {
-    type: Function,
-    required: true,
-  },
-  latestAgencyRecord: {
-    type: Function,
-    required: true,
-  },
-  promoterTerritoryText: {
-    type: Function,
-    required: true,
-  },
 })
 
 const emit = defineEmits([
@@ -108,11 +96,11 @@ const emit = defineEmits([
             <td class="px-3 py-3 font-medium text-sand-900">{{ promoter.name }}</td>
             <td class="px-3 py-3">{{ promoter.contact || '-' }}</td>
             <td class="px-3 py-3">{{ promoter.phone || '-' }}</td>
-            <td class="px-3 py-3">{{ latestAgencyRecord(getAgencyRecords(promoter))?.year || '-' }}</td>
+            <td class="px-3 py-3">{{ promoter.latestAgencyYear }}</td>
             <td class="px-3 py-3 text-xs leading-6 text-sand-700">
-              {{ latestAgencyRecord(getAgencyRecords(promoter)) ? `${promoterTerritoryText(latestAgencyRecord(getAgencyRecords(promoter)).territories)} / ${latestAgencyRecord(getAgencyRecords(promoter)).agencyPeriod || '-'} / ${latestAgencyRecord(getAgencyRecords(promoter)).workload || '-'}` : '-' }}
+              {{ promoter.latestAgencyText }}
             </td>
-            <td class="px-3 py-3">{{ getAgencyRecords(promoter).length }}</td>
+            <td class="px-3 py-3">{{ promoter.agencyRecordCount }}</td>
             <td class="px-3 py-3">
               <div class="flex flex-wrap gap-2">
                 <button type="button" class="secondary-button !px-3 !py-2 !text-xs" :disabled="busy" @click="emit('edit', promoter)">编辑</button>
