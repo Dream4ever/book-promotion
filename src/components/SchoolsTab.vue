@@ -58,8 +58,6 @@ const emit = defineEmits([
   <section class="mt-6 panel p-6">
     <EntityListToolbar
       v-model="search.schools"
-      title="学校名单"
-      description="支持搜索、分页、批量删除、批量导出。"
       search-placeholder="搜索省份 / 学校名称"
       create-label="新增学校"
       :busy="busy"

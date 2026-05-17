@@ -58,8 +58,6 @@ const emit = defineEmits([
   <section class="mt-6 panel p-6">
     <EntityListToolbar
       v-model="search.books"
-      title="书目名单"
-      description="默认每页 20 条，支持搜索和导出。"
       search-placeholder="搜索 ISBN / 书名 / 定价"
       create-label="新增书目"
       :busy="busy"

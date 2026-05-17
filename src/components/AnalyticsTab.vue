@@ -83,10 +83,6 @@ const bookItems = computed(() => [
   <section class="mt-6 grid gap-6">
     <div class="panel p-6">
       <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-sand-900">统计报表</h2>
-          <p class="mt-1 text-sm text-sand-600">按省份、推广商、书目筛选当前报备记录并统计。</p>
-        </div>
         <div class="flex flex-wrap gap-3">
           <USelect v-model="selectedTerm" class="w-40" :items="termItems" />
           <USelect v-model="selectedProvince" class="w-40" :items="provinceItems" />

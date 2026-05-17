@@ -49,10 +49,6 @@ const emit = defineEmits([
 
 <template>
   <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-    <div>
-      <h2 class="text-xl font-semibold text-sand-900">{{ title }}</h2>
-      <p v-if="description" class="mt-1 text-sm text-sand-600">{{ description }}</p>
-    </div>
     <div class="flex flex-wrap gap-3">
       <UInput
         :model-value="modelValue"

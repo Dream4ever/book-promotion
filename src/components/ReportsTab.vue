@@ -61,8 +61,6 @@ const emit = defineEmits([
   <section class="mt-6 panel p-6">
     <EntityListToolbar
       v-model="search.reports"
-      title="报备记录"
-      description="报备时支持模糊查询，修改时仍校验唯一性。"
       search-placeholder="搜索学期 / 省份 / 学校 / 书目 / 推广商"
       search-width-class="w-72"
       create-label="新增报备"

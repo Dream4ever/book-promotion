@@ -58,8 +58,6 @@ const emit = defineEmits([
   <section class="mt-6 panel p-6">
     <EntityListToolbar
       v-model="search.promoters"
-      title="推广商名单"
-      description="可按名称、联系人、电话、代理省份搜索。"
       search-placeholder="搜索推广商 / 联系人 / 电话 / 省份"
       search-width-class="w-72"
       create-label="新增推广商"
