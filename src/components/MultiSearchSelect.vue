@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { filterOptions, getOptionsPanelState } from '../utils/optionFiltering'
 
 const props = defineProps({
   modelValue: {
@@ -22,6 +23,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -36,13 +41,15 @@ const selectedOptions = computed(() =>
     .filter(Boolean),
 )
 
-const filteredOptions = computed(() => {
-  const keyword = query.value.trim().toLowerCase()
-  const rows = keyword
-    ? props.options.filter((option) => option.keywords.toLowerCase().includes(keyword))
-    : props.options
-  return rows.slice(0, 20)
-})
+const filteredOptions = computed(() => filterOptions(props.options, query.value, { limit: 20 }))
+const panelState = computed(() =>
+  getOptionsPanelState({
+    loading: props.loading,
+    options: props.options,
+    filteredOptions: filteredOptions.value,
+    emptyText: props.emptyText,
+  }),
+)
 
 function toggleOption(option) {
   const exists = selectedIds.value.has(option.id)
@@ -60,6 +67,11 @@ function removeOption(id) {
     props.modelValue.filter((item) => item !== id),
   )
 }
+
+function toggleFirstMatch() {
+  if (!filteredOptions.value.length) return
+  toggleOption(filteredOptions.value[0])
+}
 </script>
 
 <template>
@@ -71,17 +83,22 @@ function removeOption(id) {
       :class="{ 'field-input-error': invalid }"
       :placeholder="placeholder"
       :aria-invalid="invalid ? 'true' : 'false'"
+      @keydown.enter.prevent="toggleFirstMatch"
     />
 
     <div
       class="max-h-64 overflow-auto rounded-2xl border border-sand-200 bg-white p-2"
       :class="{ 'border-red-300 bg-red-50/30': invalid }"
+      role="listbox"
+      aria-multiselectable="true"
     >
       <button
-        v-for="option in filteredOptions"
+        v-for="option in panelState.kind === 'ready' ? filteredOptions : []"
         :key="option.id"
         type="button"
         class="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-sand-50"
+        role="option"
+        :aria-selected="selectedIds.has(option.id)"
         @click="toggleOption(option)"
       >
         <input type="checkbox" class="mt-1" :checked="selectedIds.has(option.id)" readonly />
@@ -91,8 +108,8 @@ function removeOption(id) {
         </span>
       </button>
 
-      <div v-if="!filteredOptions.length" class="px-3 py-4 text-sm text-sand-500">
-        {{ emptyText }}
+      <div v-if="panelState.kind !== 'ready'" class="px-3 py-4 text-sm text-sand-500">
+        {{ panelState.text }}
       </div>
     </div>
 

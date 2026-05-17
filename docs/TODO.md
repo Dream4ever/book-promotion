@@ -99,15 +99,16 @@
 - [x] 页面组件中的 try/catch 数量减少
 - [x] 用户可见错误信息保持不变或更明确
 
-## P2: 清理 UI 基础组件职责
+## 已完成: P2 清理 UI 基础组件职责
 
-`SearchSelect` 和 `MultiSearchSelect` 已有重复搜索逻辑，可进一步抽取。
+`SearchSelect` 和 `MultiSearchSelect` 已共用 option filtering helper，并统一 loading/empty/invalid 状态，补充了基础键盘交互。
 
-- 抽出通用 option filtering helper
-- 统一 empty/loading/invalid 状态
-- 检查键盘可访问性和焦点管理
+- [x] 抽出通用 option filtering helper
+- [x] 统一 empty/loading/invalid 状态
+- [x] 检查键盘可访问性和焦点管理
+- [x] 执行 `npm test` 和 `npm run build`
 
 验收点:
 
-- 单选和多选组件搜索行为一致
-- 弹层关闭、清空、选择行为稳定
+- [x] 单选和多选组件搜索行为一致
+- [x] 弹层关闭、清空、选择行为稳定
