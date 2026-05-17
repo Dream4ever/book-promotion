@@ -42,23 +42,39 @@ const props = defineProps({
 
 const emit = defineEmits(['export', 'open-detail'])
 
+const ALL_FILTER_VALUE = '__all__'
+
+function selectFilterModel(key) {
+  return computed({
+    get: () => props.filters[key] || ALL_FILTER_VALUE,
+    set: (value) => {
+      props.filters[key] = value === ALL_FILTER_VALUE ? '' : value
+    },
+  })
+}
+
+const selectedTerm = selectFilterModel('term')
+const selectedProvince = selectFilterModel('province')
+const selectedPromoterId = selectFilterModel('promoterId')
+const selectedBookId = selectFilterModel('bookId')
+
 const termItems = computed(() => [
-  { label: '全部学期', value: '' },
+  { label: '全部学期', value: ALL_FILTER_VALUE },
   ...props.termOptions.map((term) => ({ label: term, value: term })),
 ])
 
 const provinceItems = computed(() => [
-  { label: '全部省份', value: '' },
+  { label: '全部省份', value: ALL_FILTER_VALUE },
   ...props.provinces.map((province) => ({ label: province, value: province })),
 ])
 
 const promoterItems = computed(() => [
-  { label: '全部推广商', value: '' },
+  { label: '全部推广商', value: ALL_FILTER_VALUE },
   ...props.promoters.map((promoter) => ({ label: promoter.name, value: promoter.id })),
 ])
 
 const bookItems = computed(() => [
-  { label: '全部书目', value: '' },
+  { label: '全部书目', value: ALL_FILTER_VALUE },
   ...props.books.map((book) => ({ label: `${book.title} (${book.isbn})`, value: book.id })),
 ])
 </script>
@@ -72,10 +88,10 @@ const bookItems = computed(() => [
           <p class="mt-1 text-sm text-sand-600">按省份、推广商、书目筛选当前报备记录并统计。</p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <USelect v-model="filters.term" class="w-40" :items="termItems" />
-          <USelect v-model="filters.province" class="w-40" :items="provinceItems" />
-          <USelect v-model="filters.promoterId" class="w-52" :items="promoterItems" />
-          <USelect v-model="filters.bookId" class="w-64" :items="bookItems" />
+          <USelect v-model="selectedTerm" class="w-40" :items="termItems" />
+          <USelect v-model="selectedProvince" class="w-40" :items="provinceItems" />
+          <USelect v-model="selectedPromoterId" class="w-52" :items="promoterItems" />
+          <USelect v-model="selectedBookId" class="w-64" :items="bookItems" />
           <UButton icon="i-lucide-download" color="neutral" variant="soft" @click="emit('export')">导出筛选明细</UButton>
         </div>
       </div>
