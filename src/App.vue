@@ -24,14 +24,8 @@ import {
   latestAgencyRecord,
   normalizeAgencyRecords as getAgencyRecords,
 } from './utils/promoterAgencyRecords'
-import {
-  reportMatchesBook,
-  resolveReportExcludedBookIds,
-  resolveReportBookMode,
-  resolveReportSavedBookIds,
-  resolveReportSpecificBookIds,
-  resolveReportTerm,
-} from '../shared/reportRules.js'
+import { buildReportViewModel } from './utils/reportViewModels'
+import { reportMatchesBook } from '../shared/reportRules.js'
 
 const PAGE_SIZE = 20
 const CURRENT_YEAR = new Date().getFullYear()
@@ -191,32 +185,13 @@ const promoterOptions = computed(() =>
 )
 
 const joinedReports = computed(() =>
-  store.state.reports.map((report) => {
-    const school = store.state.schools.find((item) => item.id === report.schoolId)
-    const promoter = store.state.promoters.find((item) => item.id === report.promoterId)
-    const bookMode = resolveReportBookMode(report)
-    const specificBooks = bookMode === 'single' ? resolveReportSpecificBooks(report) : []
-    const excludedBooks = resolveReportExcludedBooks(report)
-
-    return {
-      ...report,
-      bookMode,
-      bookIds:
-        bookMode === 'single'
-          ? resolveReportSpecificBookIds(report)
-          : resolveReportSavedBookIds(report, store.state.books),
-      province: school?.province || '',
-      schoolName: school?.name || '学校已删除',
-      schoolLabel: school ? `${school.province} / ${school.name}` : '学校已删除',
-      bookTitle: specificBooks.map((book) => book.title).join('、') || '书目已删除',
-      isbn: specificBooks.map((book) => book.isbn).join('、'),
-      bookLabel: formatReportBookLabel(bookMode, specificBooks, excludedBooks),
-      bookSearchText: formatReportBookSearchText(bookMode, specificBooks, excludedBooks),
-      term: resolveReportTerm(report),
-      promoterName: promoter?.name || '推广商已删除',
-      promoterLabel: promoter?.name || '推广商已删除',
-    }
-  }),
+  store.state.reports.map((report) =>
+    buildReportViewModel(report, {
+      schools: store.state.schools,
+      books: store.state.books,
+      promoters: store.state.promoters,
+    }),
+  ),
 )
 
 const schoolFiltered = computed(() => {
@@ -444,44 +419,6 @@ function deletePromoter(promoter) {
 
 function deleteReport(report) {
   runAction(() => api.deleteReport(report.id), '报备记录已删除，并同步更新 Supabase。')
-}
-
-function resolveReportExcludedBooks(report) {
-  const ids = resolveReportExcludedBookIds(report, store.state.books)
-  return ids
-    .map((id) => store.state.books.find((book) => book.id === id))
-    .filter(Boolean)
-}
-
-function resolveReportSpecificBooks(report) {
-  return resolveReportSpecificBookIds(report)
-    .map((id) => store.state.books.find((book) => book.id === id))
-    .filter(Boolean)
-}
-
-function formatBookOption(book) {
-  return book ? `${book.title} (${book.isbn})` : '书目已删除'
-}
-
-function formatReportBookLabel(bookMode, specificBooks, excludedBooks) {
-  if (bookMode === 'all') return '所有图书'
-  if (bookMode === 'exclude') {
-    if (!excludedBooks.length) return '排除指定图书'
-    return `排除 ${excludedBooks.length} 本：${excludedBooks.map(formatBookOption).join('、')}`
-  }
-  if (!specificBooks.length) return '书目已删除'
-  if (specificBooks.length === 1) return formatBookOption(specificBooks[0])
-  return `指定 ${specificBooks.length} 本：${specificBooks.map(formatBookOption).join('、')}`
-}
-
-function formatReportBookSearchText(bookMode, specificBooks, excludedBooks) {
-  if (bookMode === 'all') return '所有图书 推广所有图书'
-  if (bookMode === 'exclude') {
-    return `排除指定图书 只有所选图书不推广 ${excludedBooks.map(formatBookOption).join(' ')}`
-  }
-  return specificBooks.length
-    ? `指定图书 ${specificBooks.map((book) => `${book.title} ${book.isbn}`).join(' ')}`
-    : '书目已删除'
 }
 
 function formatTime(value) {
