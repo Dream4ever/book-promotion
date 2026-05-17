@@ -32,25 +32,15 @@ describe('promoterViewModels', () => {
     expect(viewModel.searchText).toContain('江苏(不接单)')
   })
 
-  it('keeps legacy promoter data visible in the list model', () => {
+  it('uses empty agency fields when no records exist', () => {
     const viewModel = buildPromoterViewModel({
       id: 'promoter_1',
       name: '华东推广',
-      agencyYear: '2024',
-      workload: '30 校',
-      territories: [{ province: '安徽', accepting: true }],
     })
 
-    expect(viewModel.agencyRecords).toEqual([
-      {
-        id: 'promoter_1_legacy',
-        year: '2024',
-        agencyPeriod: '',
-        workload: '30 校',
-        territories: [{ province: '安徽', accepting: true }],
-      },
-    ])
-    expect(viewModel.latestAgencyYear).toBe('2024')
-    expect(viewModel.latestAgencyText).toBe('安徽(接单) / - / 30 校')
+    expect(viewModel.agencyRecords).toEqual([])
+    expect(viewModel.latestAgencyYear).toBe('-')
+    expect(viewModel.latestAgencyText).toBe('-')
+    expect(viewModel.agencyRecordCount).toBe(0)
   })
 })

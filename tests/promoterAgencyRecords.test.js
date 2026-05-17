@@ -7,27 +7,13 @@ import {
 } from '../src/utils/promoterAgencyRecords.js'
 
 describe('promoterAgencyRecords', () => {
-  it('normalizes legacy promoter agency fields into a yearly record', () => {
+  it('normalizes missing agency records to an empty list', () => {
     expect(
-      normalizeAgencyRecords(
-        {
-          id: 'promoter_1',
-          agencyYear: '2025',
-          agencyPeriod: '2025.01-2025.12',
-          workload: '50 校',
-          territories: [{ province: '浙江', accepting: true }],
-        },
-        { currentYear: 2026 },
-      ),
-    ).toEqual([
-      {
-        id: 'promoter_1_legacy',
-        year: '2025',
-        agencyPeriod: '2025.01-2025.12',
-        workload: '50 校',
-        territories: [{ province: '浙江', accepting: true }],
-      },
-    ])
+      normalizeAgencyRecords({
+        id: 'promoter_1',
+        name: '华东推广',
+      }),
+    ).toEqual([])
   })
 
   it('clones agency records deeply before returning them', () => {

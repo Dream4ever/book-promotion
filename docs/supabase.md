@@ -113,35 +113,7 @@ Find the required values in Supabase project settings:
 - `SUPABASE_URL`: Project Settings -> API -> Project URL
 - `SUPABASE_SERVICE_ROLE_KEY`: Project Settings -> API -> service_role key
 
-## 3. Migrate existing JSON data
-
-If the old `public.app_state` table still contains the previous
-`school_promo_registry` JSON row, leave these compatibility variables unset or
-set them to the old values:
-
-```bash
-SUPABASE_STATE_TABLE=app_state
-SUPABASE_STATE_ID=school_promo_registry
-```
-
-Run the explicit migration script after creating the normalized tables:
-
-```bash
-npm run migrate:legacy
-```
-
-The script refuses to overwrite non-empty normalized tables. If you have
-verified that the normalized tables should be replaced from the legacy JSON row,
-run:
-
-```bash
-npm run migrate:legacy -- --force
-```
-
-After verifying the migrated data, the old `app_state` table is no longer used
-by the app and can be archived or dropped manually.
-
-## 4. Write reliability
+## 3. Write reliability
 
 The API serializes write requests inside the Node process before running
 `readDb -> mutate -> writeDb`, so concurrent requests handled by the same API
@@ -163,7 +135,7 @@ SUPABASE_WRITE_RPC=replace_registry_state
 When this variable is present, the API writes through the RPC. When it is absent,
 the API uses the granular table fallback described above.
 
-## 5. Run the app
+## 4. Run the app
 
 ```bash
 npm run dev

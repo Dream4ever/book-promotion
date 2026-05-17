@@ -55,10 +55,10 @@
 
 ## 已完成: P1 改善 Supabase 表写入可靠性
 
-`readDb -> mutate -> writeDb` 已加入同进程写队列，规范化表写入改为差异化更新；旧 `app_state.data` 迁移改为显式脚本，数据库级原子性通过可配置 Supabase RPC 接入。
+`readDb -> mutate -> writeDb` 已加入同进程写队列，规范化表写入改为差异化更新；数据库级原子性通过可配置 Supabase RPC 接入。旧单表迁移完成后，迁移入口已清理。
 
 - [x] 增加写入队列，保证同一进程内写操作串行执行
-- [x] 将旧 `app_state.data` 迁移逻辑改成显式脚本或管理端接口
+- [x] 数据迁移完成后清理旧单表迁移入口
 - [x] 写入时只更新受影响的实体表和关联表，避免每次整体清空重写
 - [x] 增加数据库事务或 RPC，保证多表写入原子性
 - [x] 执行 `node --check server/db.js`、`node --check server/routeHelpers.js` 和 `npm run build`
@@ -115,12 +115,12 @@
 
 ## 已完成: P1 抽取推广商年度代理记录工具
 
-`App.vue` 和 `PromoterModal.vue` 已复用 `src/utils/promoterAgencyRecords.js` 处理年度代理记录的 legacy 数据兼容、深拷贝和展示文本，避免后续修改两处逻辑不一致。
+`App.vue` 和 `PromoterModal.vue` 已复用 `src/utils/promoterAgencyRecords.js` 处理年度代理记录的深拷贝和展示文本，避免后续修改两处逻辑不一致。
 
 - [x] 新增 `src/utils/promoterAgencyRecords.js`
-- [x] 统一 legacy 推广商代理记录规范化逻辑
+- [x] 统一推广商代理记录规范化逻辑
 - [x] 统一代理省份和年度代理记录的展示文本格式化
-- [x] 补充 Vitest 覆盖 legacy 数据、深拷贝、最新年度记录选择
+- [x] 补充 Vitest 覆盖空记录、深拷贝、最新年度记录选择
 - [x] 执行 `npm test` 和 `npm run build`
 
 验收点:
@@ -209,14 +209,14 @@
 
 - [x] 新增 `src/utils/promoterViewModels.js`
 - [x] 将推广商最新代理年度、配置文本、历史记录数计算移出模板
-- [x] 给 legacy 记录和最新年度选择补测试
+- [x] 给空记录和最新年度选择补测试
 - [x] 执行 `npm test` 和 `npm run build`
 
 验收点:
 
 - [x] `PromotersTab.vue` 不再重复组合代理记录展示文本
 - [x] 推广商搜索、列表、导出继续使用同一规范化数据
-- [x] legacy 推广商数据展示不变
+- [x] 无代理记录的推广商数据展示不变
 
 ## 已完成: P3 抽取实体列表通用工具栏
 

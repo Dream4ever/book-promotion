@@ -37,9 +37,6 @@ const DEFAULT_TABLES = {
   reportBooks: 'report_books',
 }
 
-const LEGACY_STATE_TABLE = 'app_state'
-const LEGACY_STATE_ID = 'school_promo_registry'
-
 let supabaseClient
 
 function clone(value) {
@@ -93,14 +90,6 @@ function getTables() {
   }
 }
 
-function getLegacyStateTable() {
-  return process.env.SUPABASE_STATE_TABLE?.trim() || LEGACY_STATE_TABLE
-}
-
-function getLegacyStateId() {
-  return process.env.SUPABASE_STATE_ID?.trim() || LEGACY_STATE_ID
-}
-
 function normalizeDb(value) {
   const parsed = value && typeof value === 'object' ? value : DEFAULT_DB
   const books = Array.isArray(parsed.books) ? parsed.books : []
@@ -142,7 +131,7 @@ function normalizePromoterRecord(record) {
   const territories = normalizeTerritories(record?.territories)
   return {
     id: record?.id || createId('agency'),
-    year: normalizeYear(record?.year || record?.agencyYear),
+    year: normalizeYear(record?.year),
     agencyPeriod: normalizeText(record?.agencyPeriod),
     workload: normalizeText(record?.workload),
     territories,
@@ -150,31 +139,14 @@ function normalizePromoterRecord(record) {
 }
 
 function normalizePromoter(promoter) {
-  const hasLegacyAgencyData =
-    normalizeText(promoter?.agencyYear) ||
-    normalizeText(promoter?.agencyPeriod) ||
-    normalizeText(promoter?.workload) ||
-    normalizeTerritories(promoter?.territories).length
-
-  const agencyRecords = Array.isArray(promoter?.agencyRecords) && promoter.agencyRecords.length
-    ? promoter.agencyRecords.map(normalizePromoterRecord)
-    : hasLegacyAgencyData
-      ? [
-          normalizePromoterRecord({
-            year: promoter?.agencyYear || new Date().getFullYear(),
-            agencyPeriod: promoter?.agencyPeriod,
-            workload: promoter?.workload,
-            territories: promoter?.territories,
-          }),
-        ]
-      : []
-
   return {
     id: promoter?.id || createId('promoter'),
     name: normalizeText(promoter?.name),
     contact: normalizeText(promoter?.contact),
     phone: normalizeText(promoter?.phone),
-    agencyRecords,
+    agencyRecords: Array.isArray(promoter?.agencyRecords)
+      ? promoter.agencyRecords.map(normalizePromoterRecord)
+      : [],
   }
 }
 
@@ -182,7 +154,7 @@ function normalizeReport(report, books) {
   const normalized = normalizeReportPayload(
     {
       ...report,
-      term: normalizeText(report?.term) || inferReportTerm(report?.createdAt || report?.created_at),
+      term: normalizeText(report?.term) || inferReportTerm(report?.createdAt),
     },
     books,
     { bookIdsAreSaved: true },
@@ -192,8 +164,8 @@ function normalizeReport(report, books) {
     ...report,
     id: report?.id || createId('report'),
     ...normalized,
-    createdAt: normalizeText(report?.createdAt || report?.created_at),
-    updatedAt: normalizeText(report?.updatedAt || report?.updated_at),
+    createdAt: normalizeText(report?.createdAt),
+    updatedAt: normalizeText(report?.updatedAt),
   }
 }
 
@@ -247,17 +219,6 @@ async function writeDbViaRpc(normalized, previous) {
   })
   assertNoError(error, `Failed to write Supabase data through RPC ${rpcName}`)
   return true
-}
-
-async function readLegacyState() {
-  const { data, error } = await getSupabase()
-    .from(getLegacyStateTable())
-    .select('data')
-    .eq('id', getLegacyStateId())
-    .maybeSingle()
-
-  if (error) return null
-  return data?.data || null
 }
 
 async function readStructuredDb() {
@@ -328,33 +289,6 @@ export async function readDb() {
   if (hasAnyData(db)) return db
 
   return clone(DEFAULT_DB)
-}
-
-export async function migrateLegacyState({ force = false } = {}) {
-  const legacyState = await readLegacyState()
-  if (!legacyState) {
-    return { migrated: false, reason: 'legacy_state_missing', count: 0 }
-  }
-
-  const current = await readStructuredDb()
-  if (hasAnyData(current) && !force) {
-    return { migrated: false, reason: 'structured_tables_not_empty', count: 0 }
-  }
-
-  const migrated = normalizeDb(legacyState)
-  if (!hasAnyData(migrated)) {
-    return { migrated: false, reason: 'legacy_state_empty', count: 0 }
-  }
-
-  await replaceDb(migrated)
-  return {
-    migrated: true,
-    count:
-      migrated.schools.length +
-      migrated.books.length +
-      migrated.promoters.length +
-      migrated.reports.length,
-  }
 }
 
 export async function replaceDb(data) {

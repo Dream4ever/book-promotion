@@ -36,7 +36,7 @@ const form = reactive({
   contact: '',
   phone: '',
   agencyRecordId: '',
-  agencyYear: String(CURRENT_YEAR),
+  agencyRecordYear: String(CURRENT_YEAR),
   agencyPeriod: '',
   workload: '',
   province: '',
@@ -48,7 +48,7 @@ const localError = reactive({ text: '' })
 
 function resetAgencyDraft() {
   form.agencyRecordId = ''
-  form.agencyYear = String(CURRENT_YEAR)
+  form.agencyRecordYear = String(CURRENT_YEAR)
   form.agencyPeriod = ''
   form.workload = ''
   form.province = ''
@@ -101,14 +101,14 @@ function addTerritory() {
 }
 
 function saveAgencyRecord() {
-  if (!form.agencyYear) {
+  if (!form.agencyRecordYear) {
     setLocalError('请填写代理年度。')
     return
   }
 
   const record = {
     id: form.agencyRecordId || `agency_${Date.now()}`,
-    year: form.agencyYear,
+    year: form.agencyRecordYear,
     agencyPeriod: form.agencyPeriod,
     workload: form.workload,
     territories: cloneTerritories(form.territories),
@@ -137,7 +137,7 @@ function saveAgencyRecord() {
 
 function editAgencyRecord(record) {
   form.agencyRecordId = record.id
-  form.agencyYear = record.year
+  form.agencyRecordYear = record.year
   form.agencyPeriod = record.agencyPeriod
   form.workload = record.workload
   form.province = ''
@@ -211,7 +211,7 @@ function submit() {
         <div class="grid gap-4 lg:grid-cols-3">
           <div>
             <label class="label-text">代理年度</label>
-            <input v-model="form.agencyYear" class="field-input" type="number" min="2000" max="2100" placeholder="例如：2026" />
+            <input v-model="form.agencyRecordYear" class="field-input" type="number" min="2000" max="2100" placeholder="例如：2026" />
           </div>
           <div>
             <label class="label-text">代理期间</label>

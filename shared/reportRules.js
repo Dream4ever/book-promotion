@@ -57,7 +57,7 @@ export function resolveReportSavedBookIds(report, books = []) {
   }
 
   if (bookMode === 'all') {
-    return storedBookIds.length ? storedBookIds : resolveAvailableBookIds(books)
+    return storedBookIds
   }
 
   return storedBookIds
@@ -79,7 +79,7 @@ export function normalizeReportPayload(payload, books = [], options = {}) {
     bookMode === 'single'
       ? specificBookIds
       : bookMode === 'all'
-        ? bookIdsAreSaved && inputBookIds.length
+        ? bookIdsAreSaved
           ? inputBookIds
           : availableBookIds
         : bookIdsAreSaved
@@ -136,8 +136,6 @@ export function findReportConflicts(reports = [], normalized, currentId = '', bo
 }
 
 export function reportMatchesBook(report, bookId) {
-  const bookMode = resolveReportBookMode(report)
   const savedBookIds = resolveReportSavedBookIds(report)
-  if (bookMode === 'all' && !savedBookIds.length) return true
   return savedBookIds.includes(bookId)
 }

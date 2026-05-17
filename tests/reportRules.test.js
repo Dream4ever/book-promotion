@@ -77,7 +77,8 @@ describe('reportRules', () => {
     ])
   })
 
-  it('matches legacy all-mode reports without stored book ids', () => {
-    expect(reportMatchesBook({ bookMode: 'all', bookIds: [] }, 'book_1')).toBe(true)
+  it('matches all-mode reports by their saved book ids', () => {
+    expect(reportMatchesBook({ bookMode: 'all', bookIds: ['book_1'] }, 'book_1')).toBe(true)
+    expect(reportMatchesBook({ bookMode: 'all', bookIds: [] }, 'book_1')).toBe(false)
   })
 })
