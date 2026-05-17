@@ -1,3 +1,18 @@
+export class ApiError extends Error {
+  constructor(message, { status = 0, payload = null, url = '' } = {}) {
+    super(message || '请求失败')
+    this.name = 'ApiError'
+    this.status = status
+    this.payload = payload
+    this.url = url
+    this.userMessage = message || '请求失败'
+  }
+}
+
+export function getErrorMessage(error, fallback = '请求失败') {
+  return error?.userMessage || error?.message || fallback
+}
+
 async function request(url, options = {}) {
   const response = await fetch(url, {
     headers: {
@@ -9,7 +24,11 @@ async function request(url, options = {}) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}))
-    throw new Error(payload.message || '请求失败')
+    throw new ApiError(payload.message || '请求失败', {
+      status: response.status,
+      payload,
+      url,
+    })
   }
 
   return response.json()

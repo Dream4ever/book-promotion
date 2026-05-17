@@ -10,13 +10,14 @@ import ReportModal from './components/ReportModal.vue'
 import ReportsTab from './components/ReportsTab.vue'
 import SchoolModal from './components/SchoolModal.vue'
 import SchoolsTab from './components/SchoolsTab.vue'
+import { useActionRunner } from './composables/useActionRunner'
 import { useRegistryImport } from './composables/useRegistryImport'
 import { usePagedLists } from './composables/usePagedLists'
 import { useRegistryStore } from './composables/useRegistryStore'
 import { useRegistryExport } from './composables/useRegistryExport'
 import { useRowSelection } from './composables/useRowSelection'
 import { PROVINCES } from './constants/provinces'
-import { api } from './utils/api'
+import { api, getErrorMessage } from './utils/api'
 import {
   reportMatchesBook,
   resolveReportExcludedBookIds,
@@ -138,6 +139,13 @@ const {
   areAllSelected,
   toggleAllSelection,
 } = useRowSelection(['schools', 'books', 'promoters', 'reports'])
+
+const { runAction: runRegistryAction } = useActionRunner({
+  busy,
+  refresh: store.refresh,
+  clearAllSelections,
+  setMessage,
+})
 
 const { importPreview, handleImport, closeImportPreview, confirmImport } = useRegistryImport({
   kindLabels,
@@ -295,6 +303,10 @@ function setMessage(text, type = 'success') {
   message.type = type
 }
 
+function runAction(action, successText, afterSuccess) {
+  return runRegistryAction(action, { successText, afterSuccess })
+}
+
 function closeSchoolModal() {
   modal.school = false
   selectedSchool.value = null
@@ -350,21 +362,6 @@ function openReportModal(report = null) {
   modal.report = true
 }
 
-async function runAction(action, successText, afterSuccess) {
-  busy.value = true
-  try {
-    await action()
-    await store.refresh()
-    clearAllSelections()
-    if (afterSuccess) afterSuccess()
-    if (successText) setMessage(successText)
-  } catch (error) {
-    setMessage(error.message, 'error')
-  } finally {
-    busy.value = false
-  }
-}
-
 function submitSchool(payload) {
   const school = selectedSchool.value
   const isEditing = Boolean(school)
@@ -395,24 +392,22 @@ function submitPromoter(payload) {
   )
 }
 
-async function submitReport(payload) {
+function submitReport(payload) {
   const report = selectedReport.value
   const isEditing = Boolean(report)
-  busy.value = true
   closeReportError()
-  try {
-    await (isEditing ? api.updateReport(report.id, payload) : api.createReport(payload))
-    await store.refresh()
-    clearAllSelections()
-    closeReportModal()
-    setMessage(
-      isEditing ? '报备记录已修改，并同步写入 Supabase。' : '报备成功，记录已写入 Supabase。',
-    )
-  } catch (error) {
-    showReportError(error.message, isEditing ? '修改报备失败' : '新增报备失败')
-  } finally {
-    busy.value = false
-  }
+  return runRegistryAction(
+    () => (isEditing ? api.updateReport(report.id, payload) : api.createReport(payload)),
+    {
+      successText: isEditing ? '报备记录已修改，并同步写入 Supabase。' : '报备成功，记录已写入 Supabase。',
+      afterSuccess: closeReportModal,
+      onError: (error) =>
+        showReportError(
+          getErrorMessage(error, '报备提交失败，请稍后重试。'),
+          isEditing ? '修改报备失败' : '新增报备失败',
+        ),
+    },
+  )
 }
 
 function batchDelete(kind) {
@@ -591,7 +586,7 @@ onMounted(async () => {
   try {
     await store.refresh()
   } catch (error) {
-    setMessage(`初始化失败：${error.message}`, 'error')
+    setMessage(`初始化失败：${getErrorMessage(error)}`, 'error')
   }
 })
 </script>

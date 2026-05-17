@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { api } from '../utils/api'
+import { api, getErrorMessage } from '../utils/api'
 import { mapBookRows, mapPromoterRows, mapSchoolRows } from '../utils/importers'
 
 const importMappers = {
@@ -47,7 +47,7 @@ export function useRegistryImport({
       importPreview.fileName = file.name
       importPreview.rawCount = rows.length
     } catch (error) {
-      setMessage(`导入预览失败：${error.message}`, 'error')
+      setMessage(`导入预览失败：${getErrorMessage(error)}`, 'error')
     } finally {
       event.target.value = ''
     }

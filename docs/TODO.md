@@ -85,18 +85,19 @@
 - [x] `npm test` 可运行
 - [x] 报备冲突、书目模式、导入字段映射、级联删除都有覆盖
 
-## P2: 统一前端 API 调用错误处理
+## 已完成: P2 统一前端 API 调用错误处理
 
-当前页面层仍需要手动处理较多成功/失败消息。
+前端 API 错误已统一为 `ApiError`，常见 busy/message/refresh/clear selection 流程已抽到 action runner composable；报备提交继续使用弹窗错误。
 
-- 给 `src/utils/api.js` 增加更清晰的错误对象结构
-- 将常见 `busy/message/refresh` 流程抽成 action runner composable
-- 区分普通 toast 式错误和报备弹窗错误
+- [x] 给 `src/utils/api.js` 增加更清晰的错误对象结构
+- [x] 将常见 `busy/message/refresh` 流程抽成 action runner composable
+- [x] 区分普通 toast 式错误和报备弹窗错误
+- [x] 执行 `npm test` 和 `npm run build`
 
 验收点:
 
-- 页面组件中的 try/catch 数量减少
-- 用户可见错误信息保持不变或更明确
+- [x] 页面组件中的 try/catch 数量减少
+- [x] 用户可见错误信息保持不变或更明确
 
 ## P2: 清理 UI 基础组件职责
 
