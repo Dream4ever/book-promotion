@@ -11,6 +11,7 @@ import ReportsTab from './components/ReportsTab.vue'
 import SchoolModal from './components/SchoolModal.vue'
 import SchoolsTab from './components/SchoolsTab.vue'
 import { useActionRunner } from './composables/useActionRunner'
+import { useRegistryAnalytics } from './composables/useRegistryAnalytics'
 import { useRegistryImport } from './composables/useRegistryImport'
 import { usePagedLists } from './composables/usePagedLists'
 import { useRegistryStore } from './composables/useRegistryStore'
@@ -25,7 +26,6 @@ import {
   normalizeAgencyRecords as getAgencyRecords,
 } from './utils/promoterAgencyRecords'
 import { buildReportViewModel } from './utils/reportViewModels'
-import { reportMatchesBook } from '../shared/reportRules.js'
 
 const PAGE_SIZE = 20
 const CURRENT_YEAR = new Date().getFullYear()
@@ -106,18 +106,6 @@ const modal = reactive({
   report: false,
   reportError: false,
   analyticsDetail: false,
-})
-
-const analyticsFilters = reactive({
-  term: '',
-  province: '',
-  promoterId: '',
-  bookId: '',
-})
-
-const analyticsDetail = reactive({
-  title: '',
-  rows: [],
 })
 
 const reportError = reactive({
@@ -246,38 +234,16 @@ const bookPageRows = pageRows.books
 const promoterPageRows = pageRows.promoters
 const reportPageRows = pageRows.reports
 
-const analyticsReportRows = computed(() =>
-  joinedReports.value.filter((item) => {
-    if (analyticsFilters.term && item.term !== analyticsFilters.term) return false
-    if (analyticsFilters.province && item.province !== analyticsFilters.province) return false
-    if (analyticsFilters.promoterId && item.promoterId !== analyticsFilters.promoterId) return false
-    if (analyticsFilters.bookId && !reportMatchesBook(item, analyticsFilters.bookId)) return false
-    return true
-  }),
-)
-
-const provinceStats = computed(() =>
-  summarizeRows(analyticsReportRows.value, (item) => item.province || '未识别省份', '省份'),
-)
-
-const promoterStats = computed(() =>
-  summarizeRows(analyticsReportRows.value, (item) => item.promoterName || '未知推广商', '推广商'),
-)
-
-const bookStats = computed(() =>
-  summarizeRows(analyticsReportRows.value, (item) => item.bookLabel || '未知书目', '书目'),
-)
-
-function summarizeRows(rows, labelGetter, labelName) {
-  const map = new Map()
-  rows.forEach((item) => {
-    const label = labelGetter(item)
-    map.set(label, (map.get(label) || 0) + 1)
-  })
-  return Array.from(map.entries())
-    .map(([name, count]) => ({ [labelName]: name, 报备数量: count }))
-    .sort((a, b) => b.报备数量 - a.报备数量)
-}
+const {
+  analyticsFilters,
+  analyticsDetail,
+  analyticsReportRows,
+  provinceStats,
+  promoterStats,
+  bookStats,
+  openAnalyticsStatDetail,
+  closeAnalyticsDetail,
+} = useRegistryAnalytics(joinedReports)
 
 function setMessage(text, type = 'success') {
   message.text = text
@@ -458,24 +424,14 @@ function formatPreviewValue(kind, row, key) {
   return row[key] || '-'
 }
 
-function openAnalyticsDetail(title, rows) {
-  analyticsDetail.title = title
-  analyticsDetail.rows = rows
+function openAnalyticsDetailModal(payload) {
+  openAnalyticsStatDetail(payload)
   modal.analyticsDetail = true
 }
 
-function closeAnalyticsDetail() {
-  analyticsDetail.title = ''
-  analyticsDetail.rows = []
+function closeAnalyticsDetailModal() {
+  closeAnalyticsDetail()
   modal.analyticsDetail = false
-}
-
-function analyticsRowsBy(field, value) {
-  return analyticsReportRows.value.filter((item) => item[field] === value)
-}
-
-function openAnalyticsStatDetail({ title, field, value }) {
-  openAnalyticsDetail(title, analyticsRowsBy(field, value))
 }
 
 onMounted(async () => {
@@ -623,7 +579,7 @@ onMounted(async () => {
       :promoter-stats="promoterStats"
       :book-stats="bookStats"
       @export="exportAnalytics"
-      @open-detail="openAnalyticsStatDetail"
+      @open-detail="openAnalyticsDetailModal"
     />
     <SchoolModal
       :visible="modal.school"
@@ -676,7 +632,7 @@ onMounted(async () => {
       </template>
     </ModalPanel>
 
-    <ModalPanel :visible="modal.analyticsDetail" :title="analyticsDetail.title || '统计明细'" max-width-class="max-w-6xl" @close="closeAnalyticsDetail">
+    <ModalPanel :visible="modal.analyticsDetail" :title="analyticsDetail.title || '统计明细'" max-width-class="max-w-6xl" @close="closeAnalyticsDetailModal">
       <template #description>
         <p class="mt-2 text-sm text-sand-600">共 {{ analyticsDetail.rows.length }} 条报备记录，保留历史学期数据可直接查询。</p>
       </template>
@@ -708,7 +664,7 @@ onMounted(async () => {
         </table>
       </div>
       <template #footer>
-        <button type="button" class="secondary-button" @click="closeAnalyticsDetail">关闭</button>
+        <button type="button" class="secondary-button" @click="closeAnalyticsDetailModal">关闭</button>
         <button type="button" class="primary-button" @click="exportAnalyticsDetail">导出明细</button>
       </template>
     </ModalPanel>

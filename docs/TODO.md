@@ -144,19 +144,19 @@
 - [x] 报备列表、搜索、统计和导出使用同一展示字段
 - [x] 三种图书模式的展示文案保持一致
 
-## 待办: P2 拆分统计筛选与明细逻辑
+## 已完成: P2 拆分统计筛选与明细逻辑
 
-统计 tab 的筛选、汇总、明细弹窗状态仍由 `App.vue` 集中管理，可抽成 `useRegistryAnalytics`，让页面骨架继续变薄。
+统计 tab 的筛选、汇总、明细数据已抽到 `useRegistryAnalytics`，`App.vue` 只保留统计明细弹窗的显示/隐藏状态。
 
-- [ ] 新增 `src/composables/useRegistryAnalytics.js`
-- [ ] 移动统计筛选、汇总、明细打开/关闭逻辑
-- [ ] 保持 `AnalyticsTab.vue` props/emits 边界不变或更清晰
-- [ ] 执行 `npm test` 和 `npm run build`
+- [x] 新增 `src/composables/useRegistryAnalytics.js`
+- [x] 移动统计筛选、汇总、明细打开/关闭逻辑
+- [x] 保持 `AnalyticsTab.vue` props/emits 边界不变或更清晰
+- [x] 执行 `npm test` 和 `npm run build`
 
 验收点:
 
-- [ ] `App.vue` 不再直接维护统计明细状态和汇总函数
-- [ ] 统计筛选、点击明细、导出明细行为不变
+- [x] `App.vue` 不再直接维护统计明细状态和汇总函数
+- [x] 统计筛选、点击明细、导出明细行为不变
 
 ## 待办: P2 拆分 Supabase 行映射与写入 diff
 
