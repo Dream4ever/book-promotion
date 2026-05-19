@@ -22,14 +22,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(props.totalItems / props
 
 const pageSizeItems = [20, 50, 100]
 
-
-const currentPage = computed({
-  get: () => props.page,
-  set: (nextPage) => {
-    setPage(nextPage)
-  },
-})
-
 function setPage(nextPage) {
   if (nextPage < 1 || nextPage > totalPages.value || nextPage === props.page) return
   emit('update:page', nextPage)
@@ -49,12 +41,12 @@ function setPage(nextPage) {
         @update:model-value="emit('update:page-size', Number($event))"
       />
       <UPagination
-        v-model:page="currentPage"
+        :model-value="page"
         :total="totalItems"
         :items-per-page="pageSize"
         :sibling-count="1"
         show-edges
-        
+        @update:model-value="setPage"
       />
     </div>
   </div>
