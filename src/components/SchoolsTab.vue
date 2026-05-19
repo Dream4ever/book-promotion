@@ -43,6 +43,7 @@ defineProps({
 
 const emit = defineEmits([
   'update:page',
+  'update:page-size',
   'create',
   'edit',
   'delete',
@@ -122,6 +123,6 @@ const emit = defineEmits([
         </tbody>
       </table>
     </div>
-    <PaginationBar :page="page" :total-items="filteredCount" :page-size="pageSize" @update:page="emit('update:page', $event)" />
+    <PaginationBar :page="page" :total-items="filteredCount" :page-size="pageSize" @update:page="emit('update:page', $event)" @update:page-size="emit('update:page-size', $event)" />
   </section>
 </template>
