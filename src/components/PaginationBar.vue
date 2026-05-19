@@ -22,7 +22,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(props.totalItems / props
 
 const pageSizeItems = [20, 50, 100]
 
-
 function setPage(nextPage) {
   if (nextPage < 1 || nextPage > totalPages.value || nextPage === props.page) return
   emit('update:page', nextPage)
