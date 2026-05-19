@@ -41,12 +41,12 @@ function setPage(nextPage) {
         @update:model-value="emit('update:page-size', Number($event))"
       />
       <UPagination
-        :model-value="page"
+        :page="page"
         :total="totalItems"
         :items-per-page="pageSize"
         :sibling-count="1"
         show-edges
-        @update:model-value="setPage"
+        @update:page="setPage"
       />
     </div>
   </div>
