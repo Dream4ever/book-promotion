@@ -28,7 +28,6 @@ import {
 import { buildPromoterViewModels } from './utils/promoterViewModels'
 import { buildReportViewModel } from './utils/reportViewModels'
 
-const PAGE_SIZE = 20
 const CURRENT_YEAR = new Date().getFullYear()
 
 const store = useRegistryStore()
@@ -98,6 +97,14 @@ const search = reactive({
   books: '',
   promoters: '',
   reports: '',
+})
+
+
+const pageSizes = reactive({
+  schools: 20,
+  books: 20,
+  promoters: 20,
+  reports: 20,
 })
 
 const modal = reactive({
@@ -223,7 +230,7 @@ const { pages, pageRows } = usePagedLists(
     reports: reportFiltered,
   },
   search,
-  PAGE_SIZE,
+  pageSizes,
 )
 
 const schoolPageRows = pageRows.schools
@@ -466,10 +473,11 @@ onMounted(async () => {
       :page-rows="schoolPageRows"
       :filtered-count="schoolFiltered.length"
       :page="pages.schools"
-      :page-size="PAGE_SIZE"
+      :page-size="pageSizes.schools"
       :is-selected="isSelected"
       :are-all-selected="areAllSelected"
       @update:page="pages.schools = $event"
+      @update:page-size="pageSizes.schools = $event"
       @create="openSchoolModal()"
       @edit="openSchoolModal"
       @delete="deleteSchool"
@@ -488,10 +496,11 @@ onMounted(async () => {
       :page-rows="bookPageRows"
       :filtered-count="bookFiltered.length"
       :page="pages.books"
-      :page-size="PAGE_SIZE"
+      :page-size="pageSizes.books"
       :is-selected="isSelected"
       :are-all-selected="areAllSelected"
       @update:page="pages.books = $event"
+      @update:page-size="pageSizes.books = $event"
       @create="openBookModal()"
       @edit="openBookModal"
       @delete="deleteBook"
@@ -510,10 +519,11 @@ onMounted(async () => {
       :page-rows="promoterPageRows"
       :filtered-count="promoterFiltered.length"
       :page="pages.promoters"
-      :page-size="PAGE_SIZE"
+      :page-size="pageSizes.promoters"
       :is-selected="isSelected"
       :are-all-selected="areAllSelected"
       @update:page="pages.promoters = $event"
+      @update:page-size="pageSizes.promoters = $event"
       @create="openPromoterModal()"
       @edit="openPromoterModal"
       @delete="deletePromoter"
@@ -532,11 +542,12 @@ onMounted(async () => {
       :page-rows="reportPageRows"
       :filtered-count="reportFiltered.length"
       :page="pages.reports"
-      :page-size="PAGE_SIZE"
+      :page-size="pageSizes.reports"
       :is-selected="isSelected"
       :are-all-selected="areAllSelected"
       :format-time="formatTime"
       @update:page="pages.reports = $event"
+      @update:page-size="pageSizes.reports = $event"
       @create="openReportModal()"
       @edit="openReportModal"
       @delete="deleteReport"
