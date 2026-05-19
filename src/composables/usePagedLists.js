@@ -5,13 +5,13 @@ function paginate(rows, page, pageSize) {
   return rows.slice(start, start + pageSize)
 }
 
-export function usePagedLists(filteredRowsByKind, search, pageSize) {
+export function usePagedLists(filteredRowsByKind, search, pageSizes) {
   const kinds = Object.keys(filteredRowsByKind)
   const pages = reactive(Object.fromEntries(kinds.map((kind) => [kind, 1])))
   const pageRows = Object.fromEntries(
     kinds.map((kind) => [
       kind,
-      computed(() => paginate(filteredRowsByKind[kind].value, pages[kind], pageSize)),
+      computed(() => paginate(filteredRowsByKind[kind].value, pages[kind], pageSizes[kind])),
     ]),
   )
 
@@ -19,12 +19,20 @@ export function usePagedLists(filteredRowsByKind, search, pageSize) {
     watch(
       () => filteredRowsByKind[kind].value.length,
       (length) => {
-        const totalPages = Math.max(1, Math.ceil(length / pageSize))
+        const totalPages = Math.max(1, Math.ceil(length / pageSizes[kind]))
         if (pages[kind] > totalPages) {
           pages[kind] = totalPages
         }
       },
       { immediate: true },
+    )
+
+
+    watch(
+      () => pageSizes[kind],
+      () => {
+        pages[kind] = 1
+      },
     )
 
     if (search && Object.prototype.hasOwnProperty.call(search, kind)) {
