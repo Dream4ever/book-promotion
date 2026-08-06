@@ -14,7 +14,7 @@
     "preview": "nuxt preview"
   },
   "dependencies": {
-    "@nuxt/ui": "^4.7.1",
+    "@nuxt/ui": "^4.8.1",
     "@supabase/supabase-js": "^2.105.4",
     "dotenv": "^17.4.2",
     "nuxt": "^4.2.0",
